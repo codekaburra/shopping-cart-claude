@@ -10,7 +10,11 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Category" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL
+    "name" TEXT NOT NULL,
+    "displayName" TEXT,
+    "displayNameEn" TEXT,
+    "parentId" TEXT,
+    CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -18,7 +22,15 @@ CREATE TABLE "Product" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "seriesCode" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "description" TEXT,
+    "nameEn" TEXT,
+    "summary" TEXT,
+    "summaryEn" TEXT,
+    "detail" TEXT,
+    "detailEn" TEXT,
+    "material" TEXT,
+    "materialEn" TEXT,
+    "accent" TEXT,
+    "detailContent" TEXT,
     "categoryId" TEXT,
     "imageUrl" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
@@ -33,6 +45,7 @@ CREATE TABLE "ProductVariant" (
     "sku" TEXT NOT NULL,
     "size" TEXT NOT NULL,
     "priceCents" INTEGER NOT NULL,
+    "stock" INTEGER NOT NULL DEFAULT 0,
     "active" BOOLEAN NOT NULL DEFAULT true,
     CONSTRAINT "ProductVariant_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -69,7 +82,7 @@ CREATE TABLE "OrderItem" (
 CREATE UNIQUE INDEX "User_inviteCode_key" ON "User"("inviteCode");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
+CREATE UNIQUE INDEX "Category_parentId_name_key" ON "Category"("parentId", "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Product_seriesCode_key" ON "Product"("seriesCode");

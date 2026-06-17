@@ -3,29 +3,36 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { t, formatPrice } from "@/i18n/zh-Hant";
+import { formatPrice } from "@/i18n";
+import { useT } from "@/i18n/locale-context";
 
 export type DetailVariant = {
   id: string;
   sku: string;
   size: string;
   priceCents: number;
+  stock: number;
 };
 
 export function ProductDetailClient({
   productName,
   seriesCode,
-  description,
+  summary,
+  detail,
+  material,
   categoryName,
   variants,
 }: {
   productName: string;
   seriesCode: string;
-  description: string | null;
+  summary: string | null;
+  detail: string | null;
+  material: string | null;
   categoryName: string | null;
   variants: DetailVariant[];
 }) {
   const { addItem } = useCart();
+  const t = useT();
   const [selectedId, setSelectedId] = useState<string>(variants[0]?.id ?? "");
   const [added, setAdded] = useState(false);
 
@@ -62,9 +69,17 @@ export function ProductDetailClient({
         )}
       </div>
 
-      {description && (
-        <p className="mt-4 whitespace-pre-line leading-relaxed text-neutral-600">
-          {description}
+      {summary && <p className="mt-4 text-neutral-700">{summary}</p>}
+
+      {detail && (
+        <p className="mt-3 whitespace-pre-line leading-relaxed text-neutral-600">
+          {detail}
+        </p>
+      )}
+
+      {material && (
+        <p className="mt-3 text-sm text-neutral-500">
+          {t("material")}：{material}
         </p>
       )}
 

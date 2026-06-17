@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { t, formatPrice } from "@/i18n/zh-Hant";
+import { formatPrice, t as translate, type MessageKey } from "@/i18n";
+import { getLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,8 @@ export default async function OrderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getLocale();
+  const t = (key: MessageKey) => translate(key, locale);
   const order = await prisma.order.findUnique({
     where: { id },
     include: { items: true },

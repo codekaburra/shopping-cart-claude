@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { t, formatPrice } from "@/i18n/zh-Hant";
+import { formatPrice } from "@/i18n";
+import { useT } from "@/i18n/locale-context";
 
 export default function CartPage() {
+  const t = useT();
   const { items, subtotalCents, setQuantity, removeItem } = useCart();
 
   if (items.length === 0) {

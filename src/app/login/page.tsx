@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { t } from "@/i18n/zh-Hant";
+import { useT } from "@/i18n/locale-context";
 
 export default function LoginPage() {
   return (
@@ -13,6 +13,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   // Only allow same-site relative paths as the post-login destination.

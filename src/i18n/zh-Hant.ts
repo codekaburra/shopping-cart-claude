@@ -31,6 +31,7 @@ export const dictionary = {
   productNotFound: "找不到此商品",
   outOfStock: "暫時缺貨",
   unitPrice: "單價",
+  material: "材質",
 
   // Cart
   cartTitle: "購物車",
@@ -75,18 +76,3 @@ export const dictionary = {
   // Common
   currencySymbol: "$",
 } as const;
-
-export type MessageKey = keyof typeof dictionary;
-
-/**
- * Translate a key into the current locale (zh-Hant). Returns the key itself
- * if it is missing, so a missing string is visible rather than silent.
- */
-export function t(key: MessageKey): string {
-  return dictionary[key] ?? key;
-}
-
-/** Format a price given in integer cents as a localized currency string. */
-export function formatPrice(cents: number): string {
-  return `${dictionary.currencySymbol}${(cents / 100).toFixed(2)}`;
-}

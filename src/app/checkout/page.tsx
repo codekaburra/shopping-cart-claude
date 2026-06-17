@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useCart } from "@/context/CartContext";
-import { t, formatPrice } from "@/i18n/zh-Hant";
+import { formatPrice } from "@/i18n";
+import { useT } from "@/i18n/locale-context";
 
 type Fulfillment = "PICKUP" | "DELIVERY";
 
 export default function CheckoutPage() {
+  const t = useT();
   const router = useRouter();
   const { items, subtotalCents, clear } = useCart();
 

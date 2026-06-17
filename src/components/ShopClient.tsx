@@ -2,24 +2,30 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { t, formatPrice } from "@/i18n/zh-Hant";
+import { formatPrice } from "@/i18n";
+import { useT } from "@/i18n/locale-context";
 
 export type SeriesSummary = {
   id: string;
   name: string;
   seriesCode: string;
-  categoryName: string | null;
+  summary: string | null;
+  topCategoryName: string | null;
+  subCategoryName: string | null;
   minPriceCents: number;
   variantCount: number;
 };
 
 export function ShopClient({ series }: { series: SeriesSummary[] }) {
+  const t = useT();
   const [activeCategory, setActiveCategory] = useState<string>("__all__");
 
   const categories = useMemo(
     () =>
       Array.from(
-        new Set(series.map((s) => s.categoryName).filter(Boolean) as string[]),
+        new Set(
+          series.map((s) => s.topCategoryName).filter(Boolean) as string[],
+        ),
       ),
     [series],
   );
@@ -27,7 +33,7 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
   const visible =
     activeCategory === "__all__"
       ? series
-      : series.filter((s) => s.categoryName === activeCategory);
+      : series.filter((s) => s.topCategoryName === activeCategory);
 
   return (
     <div>
@@ -54,7 +60,7 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
           {t("emptyProducts")}
         </p>
       ) : (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((s) => (
             <Link
               key={s.id}
@@ -63,13 +69,17 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-medium">{s.name}</h2>
-                {s.categoryName && (
+                {s.subCategoryName && (
                   <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
-                    {s.categoryName}
+                    {s.subCategoryName}
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-neutral-400">{s.seriesCode}</p>
+              {s.summary && (
+                <p className="mt-1 line-clamp-2 text-sm text-neutral-500">
+                  {s.summary}
+                </p>
+              )}
               <div className="mt-4 flex items-end justify-between">
                 <span className="text-lg font-semibold">
                   {formatPrice(s.minPriceCents)}
