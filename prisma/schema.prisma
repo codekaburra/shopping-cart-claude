@@ -1,0 +1,112 @@
+// Prisma schema for the stationery online ordering platform.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Fulfillment {
+  PICKUP
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  COMPLETED
+}
+
+// A customer. The invite code is a human-friendly label; the UUID is the key
+// that sessions and orders relate to.
+model User {
+  id          String   @id @default(uuid())
+  inviteCode  String   @unique
+  displayName String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+// A category node. Self-referential so categories can have subcategories:
+// top-level rows have parentId = null; a product hangs off a leaf node.
+model Category {
+  id            String     @id @default(cuid())
+  name          String // canonical code/name (stable key, language-neutral)
+  displayName   String? // Chinese label shown in the UI
+  displayNameEn String? // English label shown in the UI
+  parentId      String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+
+  @@unique([parentId, name])
+}
+
+// A product series. The detail page content lives here; the purchasable unit
+// is a ProductVariant.
+model Product {
+  id            String           @id @default(cuid())
+  seriesCode    String           @unique
+  name          String
+  nameEn        String?
+  summary       String? // short blurb for listings
+  summaryEn     String?
+  detail        String? // longer plain-text description
+  detailEn      String?
+  material      String? // materials / construction
+  materialEn    String?
+  accent        String? // UI accent theme hint (e.g. "ink", "blue")
+  detailContent String? // optional rich block content (JSON), for the detail page
+  categoryId    String?
+  category      Category?        @relation(fields: [categoryId], references: [id])
+  imageUrl      String?
+  active        Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  variants      ProductVariant[]
+}
+
+// A purchasable size/spec within a series. sku comes from the catalog productId.
+model ProductVariant {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        String      @unique
+  size       String
+  priceCents Int
+  stock      Int         @default(0)
+  active     Boolean     @default(true)
+  orderItems OrderItem[]
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  contactName  String
+  contactPhone String
+  note         String?
+  fulfillment  Fulfillment
+  address      String? // required when fulfillment is DELIVERY (enforced in the API)
+  status       OrderStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id             String         @id @default(cuid())
+  orderId        String
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+  quantity       Int
+  unitPriceCents Int // price snapshot at order time
+  // Denormalized snapshots so the order is readable even if the product changes.
+  productName    String
+  variantSize    String
+  sku            String
+}
