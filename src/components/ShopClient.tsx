@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatPrice } from "@/i18n";
 import { useT } from "@/i18n/locale-context";
@@ -9,7 +10,8 @@ export type SeriesSummary = {
   id: string;
   name: string;
   seriesCode: string;
-  summary: string | null;
+  imageUrl: string | null;
+  topCategoryCode: string | null;
   topCategoryName: string | null;
   subCategoryName: string | null;
   minPriceCents: number;
@@ -18,83 +20,131 @@ export type SeriesSummary = {
 
 export function ShopClient({ series }: { series: SeriesSummary[] }) {
   const t = useT();
-  const [activeCategory, setActiveCategory] = useState<string>("__all__");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams.get("category");
+  const [query, setQuery] = useState("");
 
-  const categories = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          series.map((s) => s.topCategoryName).filter(Boolean) as string[],
-        ),
-      ),
-    [series],
-  );
+  // Distinct top categories (code + label) for the tag bar.
+  const categories = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const s of series) {
+      if (s.topCategoryCode && !seen.has(s.topCategoryCode)) {
+        seen.set(s.topCategoryCode, s.topCategoryName ?? s.topCategoryCode);
+      }
+    }
+    return [...seen.entries()].map(([code, label]) => ({ code, label }));
+  }, [series]);
 
-  const visible =
-    activeCategory === "__all__"
-      ? series
-      : series.filter((s) => s.topCategoryName === activeCategory);
+  const q = query.trim().toLowerCase();
+  const visible = series.filter((s) => {
+    const inCategory = !activeCategory || s.topCategoryCode === activeCategory;
+    const matchesQuery =
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      s.seriesCode.toLowerCase().includes(q);
+    return inCategory && matchesQuery;
+  });
+
+  function selectCategory(code: string) {
+    router.push(code ? `/?category=${code}` : "/");
+  }
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">{t("shopTitle")}</h1>
+      <div className="mb-6">
+        <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+          {t("shopTitle")}
+        </h1>
+        <p className="mt-2 text-sm text-neutral-500">{t("appTagline")}</p>
+      </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <CategoryTab
-          label={t("categoryAll")}
-          active={activeCategory === "__all__"}
-          onClick={() => setActiveCategory("__all__")}
+      {/* Search */}
+      <div className="relative max-w-md">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-metal-silver">
+          🔍
+        </span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("searchPlaceholder")}
+          className="w-full rounded-2xl border border-metal-silver/50 bg-white py-2.5 pl-10 pr-3 text-sm outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
         />
-        {categories.map((category) => (
-          <CategoryTab
-            key={category}
-            label={category}
-            active={activeCategory === category}
-            onClick={() => setActiveCategory(category)}
+      </div>
+
+      {/* Category tags */}
+      <div className="mt-5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <CategoryTag
+          label={t("categoryAll")}
+          active={!activeCategory}
+          onClick={() => selectCategory("")}
+        />
+        {categories.map((c) => (
+          <CategoryTag
+            key={c.code}
+            label={c.label}
+            active={activeCategory === c.code}
+            onClick={() => selectCategory(c.code)}
           />
         ))}
       </div>
 
       {visible.length === 0 ? (
-        <p className="mt-10 text-center text-neutral-500">
+        <p className="mt-20 text-center text-neutral-500">
           {t("emptyProducts")}
         </p>
       ) : (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:gap-5 xl:grid-cols-4">
           {visible.map((s) => (
-            <Link
-              key={s.id}
-              href={`/product/${s.id}`}
-              className="flex flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-400"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="font-medium">{s.name}</h2>
-                {s.subCategoryName && (
-                  <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
-                    {s.subCategoryName}
-                  </span>
-                )}
-              </div>
-              {s.summary && (
-                <p className="mt-1 line-clamp-2 text-sm text-neutral-500">
-                  {s.summary}
+            <div key={s.id} className="card card-hover flex flex-col overflow-hidden">
+              <Link href={`/product/${s.id}`} className="block">
+                <div className="flex aspect-square items-center justify-center bg-white p-6">
+                  {s.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={s.imageUrl}
+                      alt={s.name}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-center font-serif text-sm text-stone-400">
+                      {s.name}
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              <div className="flex flex-1 flex-col p-4">
+                <p className="font-mono text-[11px] uppercase tracking-wide text-copper">
+                  {s.seriesCode}
                 </p>
-              )}
-              <div className="mt-4 flex items-end justify-between">
-                <span className="text-lg font-semibold">
-                  {formatPrice(s.minPriceCents)}
-                  <span className="ml-1 text-xs font-normal text-neutral-500">
-                    {t("priceFrom")}
+                <Link href={`/product/${s.id}`}>
+                  <h2 className="mt-1 font-serif text-base font-medium leading-snug text-neutral-900">
+                    {s.name}
+                  </h2>
+                </Link>
+                <p className="mt-1 font-mono text-[11px] text-neutral-400">
+                  {s.variantCount} {t("variantsCount")}
+                </p>
+
+                <div className="mt-auto flex items-center justify-between pt-3">
+                  <span className="text-sm font-semibold text-neutral-900">
+                    {formatPrice(s.minPriceCents)}
+                    <span className="ml-1 text-[11px] font-normal text-neutral-400">
+                      {t("priceFrom")}
+                    </span>
                   </span>
-                </span>
-                <span className="text-sm text-neutral-500">
-                  {s.variantCount} {t("variantsCount")} ·{" "}
-                  <span className="font-medium text-neutral-900">
-                    {t("viewProduct")}
-                  </span>
-                </span>
+                  <Link
+                    href={`/product/${s.id}`}
+                    aria-label={t("addToCart")}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-copper text-lg leading-none text-white transition-colors hover:bg-copper-light"
+                  >
+                    +
+                  </Link>
+                </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -102,7 +152,7 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
   );
 }
 
-function CategoryTab({
+function CategoryTag({
   label,
   active,
   onClick,
@@ -117,8 +167,8 @@ function CategoryTab({
       onClick={onClick}
       className={
         active
-          ? "rounded-full bg-neutral-900 px-3 py-1 text-sm font-medium text-white"
-          : "rounded-full border border-neutral-300 px-3 py-1 text-sm text-neutral-700 hover:bg-neutral-100"
+          ? "shrink-0 rounded-full border border-copper bg-copper px-4 py-1.5 text-sm font-medium text-white"
+          : "shrink-0 rounded-full border border-metal-silver/50 bg-transparent px-4 py-1.5 text-sm text-neutral-700 transition-colors hover:border-copper hover:text-copper"
       }
     >
       {label}

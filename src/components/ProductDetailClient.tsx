@@ -17,6 +17,7 @@ export type DetailVariant = {
 export function ProductDetailClient({
   productName,
   seriesCode,
+  imageUrl,
   summary,
   detail,
   material,
@@ -25,6 +26,7 @@ export function ProductDetailClient({
 }: {
   productName: string;
   seriesCode: string;
+  imageUrl: string | null;
   summary: string | null;
   detail: string | null;
   material: string | null;
@@ -52,72 +54,98 @@ export function ProductDetailClient({
   }
 
   return (
-    <div>
-      <Link href="/" className="text-sm text-neutral-500 hover:underline">
+    <div className="pb-24">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800"
+      >
         ← {t("backToShop")}
       </Link>
 
-      <div className="mt-3 flex items-start justify-between gap-3">
+      <div className="mt-4 grid gap-8 md:grid-cols-2 md:gap-12">
+        {/* Product image / neutral placeholder */}
+        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-stone-100 p-10">
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt={productName}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className="text-center font-serif text-xl text-stone-400">
+              {productName}
+            </span>
+          )}
+        </div>
+
+        {/* Details */}
         <div>
-          <h1 className="text-2xl font-semibold">{productName}</h1>
+          {categoryName && (
+            <p className="text-xs uppercase tracking-wide text-brand-600/80">
+              {categoryName}
+            </p>
+          )}
+          <h1 className="mt-1 text-3xl font-medium tracking-tight">
+            {productName}
+          </h1>
           <p className="mt-1 text-xs text-neutral-400">{seriesCode}</p>
-        </div>
-        {categoryName && (
-          <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
-            {categoryName}
-          </span>
-        )}
-      </div>
 
-      {summary && <p className="mt-4 text-neutral-700">{summary}</p>}
+          {summary && <p className="mt-5 text-neutral-700">{summary}</p>}
+          {detail && (
+            <p className="mt-3 whitespace-pre-line leading-relaxed text-neutral-600">
+              {detail}
+            </p>
+          )}
+          {material && (
+            <p className="mt-5 text-sm text-neutral-500">
+              <span className="font-medium text-neutral-700">
+                {t("material")}
+              </span>
+              ：{material}
+            </p>
+          )}
 
-      {detail && (
-        <p className="mt-3 whitespace-pre-line leading-relaxed text-neutral-600">
-          {detail}
-        </p>
-      )}
-
-      {material && (
-        <p className="mt-3 text-sm text-neutral-500">
-          {t("material")}：{material}
-        </p>
-      )}
-
-      <div className="mt-6">
-        <h2 className="text-sm font-medium">{t("selectSize")}</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {variants.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => setSelectedId(v.id)}
-              className={
-                v.id === selected?.id
-                  ? "rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-                  : "rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-100"
-              }
-            >
-              {v.size}
-            </button>
-          ))}
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold">{t("selectSize")}</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {variants.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setSelectedId(v.id)}
+                  className={
+                    v.id === selected?.id
+                      ? "rounded-full border border-brand-600 bg-brand-600 px-4 py-2 text-sm font-medium text-white"
+                      : "rounded-full border border-stone-300 bg-transparent px-4 py-2 text-sm text-neutral-700 transition-colors hover:border-neutral-400"
+                  }
+                >
+                  {v.size}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4">
-        <div>
-          <p className="text-sm text-neutral-500">{t("unitPrice")}</p>
-          <p className="text-2xl font-semibold">
-            {selected ? formatPrice(selected.priceCents) : "—"}
-          </p>
+      {/* Sticky add-to-cart bar */}
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-[var(--background)]/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div>
+            <p className="text-xs text-neutral-500">{t("unitPrice")}</p>
+            <p className="text-xl font-semibold">
+              {selected ? formatPrice(selected.priceCents) : "—"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!selected}
+            className="btn-primary flex-1 sm:flex-none sm:px-10"
+          >
+            {added ? `✓ ${t("added")}` : t("addToCart")}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!selected}
-          className="rounded-lg bg-neutral-900 px-5 py-2.5 font-medium text-white disabled:opacity-50"
-        >
-          {added ? t("added") : t("addToCart")}
-        </button>
       </div>
     </div>
   );
