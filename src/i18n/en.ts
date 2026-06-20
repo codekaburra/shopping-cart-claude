@@ -17,6 +17,9 @@ export const dictionary = {
   // Shop
   shopTitle: "Shop stationery",
   categoryAll: "All",
+  searchPlaceholder: "Search product ID, series or keyword",
+  sidebarNote: "All products are managed by series and SKU (product ID).",
+  promoCode: "Promo code",
   addToCart: "Add to cart",
   added: "Added",
   emptyProducts: "No products yet",

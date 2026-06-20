@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { pick } from "@/i18n";
 import { getLocale } from "@/i18n/server";
@@ -26,10 +27,12 @@ export default async function ShopPage() {
         id: p.id,
         name: pick(locale, p.name, p.nameEn) ?? p.name,
         seriesCode: p.seriesCode,
-        summary: pick(locale, p.summary, p.summaryEn),
+        imageUrl: p.imageUrl,
+        topCategoryCode: top?.name ?? null,
         topCategoryName: top
           ? pick(locale, top.displayName, top.displayNameEn)
           : null,
+        subCategoryCode: leaf?.parent ? leaf.name : null,
         subCategoryName: leaf?.parent
           ? pick(locale, leaf.displayName, leaf.displayNameEn)
           : null,
@@ -38,5 +41,9 @@ export default async function ShopPage() {
       };
     });
 
-  return <ShopClient series={series} />;
+  return (
+    <Suspense>
+      <ShopClient series={series} />
+    </Suspense>
+  );
 }

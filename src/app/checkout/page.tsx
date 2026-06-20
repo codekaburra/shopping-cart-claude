@@ -82,7 +82,7 @@ export default function CheckoutPage() {
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-5">
         {/* Fulfillment method */}
-        <fieldset className="rounded-xl border border-neutral-200 bg-white p-4">
+        <fieldset className="card p-4">
           <legend className="px-1 text-sm font-medium">
             {t("fulfillmentLabel")}
           </legend>
@@ -101,13 +101,13 @@ export default function CheckoutPage() {
         </fieldset>
 
         {/* Contact info */}
-        <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="card space-y-4 p-4">
           <Field label={t("contactName")}>
             <input
               type="text"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
-              className="input"
+              className="field"
             />
           </Field>
           <Field label={t("contactPhone")}>
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              className="input"
+              className="field"
             />
           </Field>
           {fulfillment === "DELIVERY" && (
@@ -125,7 +125,7 @@ export default function CheckoutPage() {
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder={t("addressPlaceholder")}
                 rows={2}
-                className="input"
+                className="field"
               />
             </Field>
           )}
@@ -135,13 +135,13 @@ export default function CheckoutPage() {
               onChange={(e) => setNote(e.target.value)}
               placeholder={t("notePlaceholder")}
               rows={2}
-              className="input"
+              className="field"
             />
           </Field>
         </div>
 
         {/* Order summary */}
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="card p-4">
           <h2 className="text-sm font-medium">{t("orderSummary")}</h2>
           <ul className="mt-3 space-y-1 text-sm">
             {items.map((item) => (
@@ -165,26 +165,11 @@ export default function CheckoutPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-neutral-900 px-4 py-3 font-medium text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className="btn-primary w-full">
           {submitting ? t("placingOrder") : t("placeOrder")}
         </button>
       </form>
 
-      <style>{`
-        .input {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid #d4d4d4;
-          padding: 0.5rem 0.75rem;
-          font-size: 1rem;
-          outline: none;
-        }
-        .input:focus { border-color: #171717; }
-      `}</style>
     </div>
   );
 }
@@ -219,8 +204,8 @@ function FulfillmentOption({
       onClick={onClick}
       className={
         active
-          ? "rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white"
-          : "rounded-lg border border-neutral-300 px-3 py-2 text-sm hover:bg-neutral-100"
+          ? "rounded-xl border-2 border-brand-600 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700"
+          : "rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-100"
       }
     >
       {label}

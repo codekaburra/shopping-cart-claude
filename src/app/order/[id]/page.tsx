@@ -22,10 +22,7 @@ export default async function OrderPage({
     return (
       <div className="py-16 text-center">
         <p className="text-neutral-500">{t("orderNotFound")}</p>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-        >
+        <Link href="/" className="btn-primary mt-6">
           {t("backToShop")}
         </Link>
       </div>
@@ -54,7 +51,7 @@ export default async function OrderPage({
         {t("orderConfirmedNotice")}
       </p>
 
-      <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="card mt-4 p-4">
         <h2 className="text-sm font-medium">{t("orderSummary")}</h2>
         <ul className="mt-3 space-y-1 text-sm">
           {order.items.map((item) => (
@@ -72,7 +69,7 @@ export default async function OrderPage({
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-sm">
+      <div className="card mt-4 p-4 text-sm">
         <h2 className="font-medium">{t("contactInfo")}</h2>
         <dl className="mt-2 space-y-1 text-neutral-600">
           <div className="flex gap-2">
@@ -100,10 +97,7 @@ export default async function OrderPage({
         </dl>
       </div>
 
-      <Link
-        href="/"
-        className="mt-6 inline-block rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-100"
-      >
+      <Link href="/" className="btn-outline mt-6">
         {t("backToShop")}
       </Link>
     </div>

@@ -15,10 +15,7 @@ export default function CartPage() {
         <h1 className="text-xl font-semibold">{t("cartTitle")}</h1>
         <p className="mt-3 text-neutral-500">{t("cartEmpty")}</p>
         <p className="mt-1 text-sm text-neutral-400">{t("cartEmptyHint")}</p>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-        >
+        <Link href="/" className="btn-primary mt-6">
           {t("backToShop")}
         </Link>
       </div>
@@ -29,7 +26,7 @@ export default function CartPage() {
     <div>
       <h1 className="text-xl font-semibold">{t("cartTitle")}</h1>
 
-      <ul className="mt-4 divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
+      <ul className="card mt-4 divide-y divide-neutral-200">
         {items.map((item) => (
           <li key={item.variantId} className="flex items-center gap-3 p-4">
             <div className="min-w-0 flex-1">
@@ -81,7 +78,7 @@ export default function CartPage() {
         ))}
       </ul>
 
-      <div className="mt-4 flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="card mt-4 flex items-center justify-between p-4">
         <span className="font-medium">{t("subtotal")}</span>
         <span className="text-lg font-semibold">
           {formatPrice(subtotalCents)}
@@ -89,16 +86,10 @@ export default function CartPage() {
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <Link
-          href="/"
-          className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-100"
-        >
+        <Link href="/" className="btn-outline">
           {t("backToShop")}
         </Link>
-        <Link
-          href="/checkout"
-          className="flex-1 rounded-lg bg-neutral-900 px-4 py-2.5 text-center font-medium text-white"
-        >
+        <Link href="/checkout" className="btn-primary flex-1">
           {t("goToCheckout")}
         </Link>
       </div>

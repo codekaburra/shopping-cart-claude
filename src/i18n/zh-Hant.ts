@@ -19,6 +19,9 @@ export const dictionary = {
   // Shop
   shopTitle: "選購文具",
   categoryAll: "全部",
+  searchPlaceholder: "搜尋產品 ID、系列或關鍵字",
+  sidebarNote: "所有商品以系列與 SKU（產品 ID）管理。",
+  promoCode: "優惠碼",
   addToCart: "加入購物車",
   added: "已加入",
   emptyProducts: "暫時未有商品",
