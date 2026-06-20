@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { prisma } from "@/lib/db";
-import { pick, t } from "@/i18n";
-import { getLocale } from "@/i18n/server";
 import { dictionary } from "@/i18n/zh-Hant";
-import { CartProvider } from "@/context/CartContext";
+import { getLocale } from "@/i18n/server";
 import { LocaleProvider } from "@/i18n/locale-context";
-import { UiProvider } from "@/components/ui-context";
-import { Sidebar, type NavCategory } from "@/components/Sidebar";
-import { TopHeader } from "@/components/TopHeader";
-import { CartDrawer } from "@/components/CartDrawer";
 
 export const metadata: Metadata = {
   title: dictionary.appName,
@@ -23,35 +16,13 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
 
-  const topCategories = await prisma.category.findMany({
-    where: { parentId: null },
-    orderBy: { id: "asc" },
-  });
-  const categories: NavCategory[] = topCategories.map((c) => ({
-    code: c.name,
-    label: pick(locale, c.displayName, c.displayNameEn) ?? c.name,
-  }));
-
   return (
     <html
       lang={locale === "en" ? "en" : "zh-Hant"}
       className="h-full antialiased"
     >
       <body className="min-h-full bg-neutral-beige text-neutral-900">
-        <LocaleProvider locale={locale}>
-          <UiProvider>
-            <CartProvider>
-              <Sidebar appName={t("appName", locale)} categories={categories} />
-              <div className="flex min-h-screen flex-col lg:pl-64">
-                <TopHeader />
-                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-                  {children}
-                </main>
-              </div>
-              <CartDrawer />
-            </CartProvider>
-          </UiProvider>
-        </LocaleProvider>
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );
