@@ -25,10 +25,11 @@ export function CartDrawer() {
           cartOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-concrete px-5 py-4">
-          <h2 className="font-serif text-lg text-text-primary">
-            {t("cartTitle")}
-          </h2>
+        <div className="border-b border-concrete px-5 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-lg text-text-primary">
+              {t("cartTitle")}
+            </h2>
           <button
             type="button"
             onClick={() => setCartOpen(false)}
@@ -37,6 +38,8 @@ export function CartDrawer() {
           >
             ✕
           </button>
+          </div>
+          <div className="mt-3 h-px bg-gradient-to-r from-copper/40 via-metal-gold/20 to-transparent" />
         </div>
 
         {items.length === 0 ? (

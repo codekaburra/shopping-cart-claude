@@ -45,6 +45,7 @@
 
 body {
   background: var(--background);
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--foreground);
   font-family: var(--font-sans);
 }
@@ -60,20 +61,56 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-copper px-6 py-3 text-sm font-medium text-white shadow-md transition-all hover:bg-copper-light hover:shadow-lg active:scale-95 disabled:opacity-50;
+    @apply relative isolate inline-flex items-center justify-center gap-2 overflow-hidden rounded-3xl bg-copper px-6 py-3 text-sm font-medium text-white shadow-[0_8px_25px_-10px_rgb(201,123,74,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_35px_-8px_rgb(201,123,74,0.5)] active:scale-[0.97] disabled:opacity-50;
+  }
+
+  .btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(to right, #c97b4a, #e8b88a, #d4af88);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .btn-primary:hover::before {
+    opacity: 1;
+  }
+
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      105deg,
+      rgb(255 255 255 / 0.3) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgb(255 255 255 / 0.1) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .btn-primary:hover::after {
+    opacity: 1;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-metal-silver/60 bg-transparent px-6 py-3 text-sm font-medium text-neutral-800 transition-colors hover:border-copper hover:text-copper disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-3xl border border-metal-silver/60 bg-white/70 px-6 py-3 text-sm font-medium text-neutral-700 backdrop-blur-sm transition-all duration-300 hover:border-metal-gold hover:text-industrial-dark hover:shadow-sm disabled:opacity-50;
   }
 
   /* Light product / content card with metal edge + copper hover glow. */
   .card {
-    @apply rounded-2xl border border-metal-silver/30 bg-neutral-light shadow-[0_10px_30px_-18px_rgb(0,0,0,0.4)];
+    @apply rounded-2xl border border-metal-silver/30 bg-neutral-light shadow-xl;
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:border-copper/50 hover:shadow-[0_20px_40px_-18px_rgb(201,123,74,0.45)];
+    @apply transition-all duration-300 hover:-translate-y-1 hover:border-copper/50 hover:shadow-[0_20px_40px_-12px_rgb(201,123,74,0.35)];
   }
 
   .field {

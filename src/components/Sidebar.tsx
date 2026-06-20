@@ -38,7 +38,7 @@ export function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-industrial-dark transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-metal-silver/20 bg-industrial-dark transition-transform duration-300 lg:translate-x-0 ${
           navOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -64,18 +64,18 @@ export function Sidebar({
                 key={item.code || "all"}
                 href={item.code ? `/?category=${item.code}` : "/"}
                 onClick={() => setNavOpen(false)}
-                className={`group relative block rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                className={`group relative block rounded-lg px-4 py-2.5 text-sm transition-colors ${
                   active
-                    ? "text-copper-light"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "bg-concrete/50 text-copper-light"
+                    : "text-text-secondary hover:bg-concrete/30 hover:text-text-primary"
                 }`}
               >
-                {item.label}
                 <span
-                  className={`absolute bottom-1 left-3 h-px bg-copper transition-all duration-200 ${
-                    active ? "w-8" : "w-0 group-hover:w-8"
+                  className={`absolute left-0 top-1/2 h-5 -translate-y-1/2 rounded-r-sm bg-copper transition-all duration-200 ${
+                    active ? "w-[3px]" : "w-0 group-hover:w-[3px]"
                   }`}
                 />
+                {item.label}
               </Link>
             );
           })}

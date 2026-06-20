@@ -52,11 +52,11 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl font-semibold tracking-tighter text-industrial-dark sm:text-5xl">
           {t("shopTitle")}
         </h1>
-        <p className="mt-2 text-sm text-neutral-500">{t("appTagline")}</p>
+        <p className="mt-2 text-sm text-metal-silver">{t("appTagline")}</p>
       </div>
 
       {/* Search */}
@@ -95,11 +95,11 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
           {t("emptyProducts")}
         </p>
       ) : (
-        <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:gap-5 xl:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:gap-6 xl:grid-cols-4">
           {visible.map((s) => (
             <div key={s.id} className="card card-hover flex flex-col overflow-hidden">
-              <Link href={`/product/${s.id}`} className="block">
-                <div className="flex aspect-square items-center justify-center bg-white p-6">
+              <Link href={`/product/${s.id}`} className="relative block">
+                <div className="flex aspect-square items-center justify-center bg-neutral-light p-6">
                   {s.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -113,32 +113,33 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
                     </span>
                   )}
                 </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-neutral-light to-transparent" />
               </Link>
 
               <div className="flex flex-1 flex-col p-4">
-                <p className="font-mono text-[11px] uppercase tracking-wide text-copper">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-copper">
                   {s.seriesCode}
                 </p>
                 <Link href={`/product/${s.id}`}>
-                  <h2 className="mt-1 font-serif text-base font-medium leading-snug text-neutral-900">
+                  <h2 className="mt-1.5 font-serif text-base font-medium leading-snug text-neutral-900">
                     {s.name}
                   </h2>
                 </Link>
-                <p className="mt-1 font-mono text-[11px] text-neutral-400">
+                <p className="mt-1 font-mono text-[10px] text-metal-silver">
                   {s.variantCount} {t("variantsCount")}
                 </p>
 
-                <div className="mt-auto flex items-center justify-between pt-3">
+                <div className="mt-auto flex items-center justify-between border-t border-metal-silver/20 pt-3">
                   <span className="text-sm font-semibold text-neutral-900">
                     {formatPrice(s.minPriceCents)}
-                    <span className="ml-1 text-[11px] font-normal text-neutral-400">
+                    <span className="ml-1 text-[10px] font-normal text-metal-silver">
                       {t("priceFrom")}
                     </span>
                   </span>
                   <Link
                     href={`/product/${s.id}`}
                     aria-label={t("addToCart")}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-copper text-lg leading-none text-white transition-colors hover:bg-copper-light"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-copper text-lg leading-none text-white shadow-[0_4px_12px_-4px_rgb(201,123,74,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-copper hover:via-copper-light hover:to-metal-gold hover:shadow-[0_6px_16px_-4px_rgb(201,123,74,0.6)]"
                   >
                     +
                   </Link>
@@ -167,8 +168,8 @@ function CategoryTag({
       onClick={onClick}
       className={
         active
-          ? "shrink-0 rounded-full border border-copper bg-copper px-4 py-1.5 text-sm font-medium text-white"
-          : "shrink-0 rounded-full border border-metal-silver/50 bg-transparent px-4 py-1.5 text-sm text-neutral-700 transition-colors hover:border-copper hover:text-copper"
+          ? "shrink-0 rounded-full border border-copper bg-copper px-4 py-1.5 text-sm font-medium text-white shadow-[inset_0_1px_2px_rgb(0,0,0,0.2)]"
+          : "shrink-0 rounded-full border border-metal-silver/40 bg-transparent px-4 py-1.5 text-sm text-neutral-600 transition-all hover:border-copper hover:text-copper hover:shadow-sm"
       }
     >
       {label}

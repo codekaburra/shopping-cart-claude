@@ -15,7 +15,7 @@ export function TopHeader() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-metal-silver/30 bg-neutral-beige/85 backdrop-blur">
+    <header className="sticky top-0 z-20 bg-neutral-beige/90 backdrop-blur">
       <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <button
           type="button"
@@ -43,6 +43,7 @@ export function TopHeader() {
           </button>
         </div>
       </div>
+      <div className="h-px bg-gradient-to-r from-transparent via-metal-silver/40 to-transparent" />
     </header>
   );
 }
