@@ -32,6 +32,7 @@ export default async function ShopPage() {
         topCategoryName: top
           ? pick(locale, top.displayName, top.displayNameEn)
           : null,
+        subCategoryCode: leaf?.parent ? leaf.name : null,
         subCategoryName: leaf?.parent
           ? pick(locale, leaf.displayName, leaf.displayNameEn)
           : null,

@@ -13,6 +13,7 @@ export type SeriesSummary = {
   imageUrl: string | null;
   topCategoryCode: string | null;
   topCategoryName: string | null;
+  subCategoryCode: string | null;
   subCategoryName: string | null;
   minPriceCents: number;
   variantCount: number;
@@ -23,9 +24,9 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get("category");
+  const activeSub = searchParams.get("sub");
   const [query, setQuery] = useState("");
 
-  // Distinct top categories (code + label) for the tag bar.
   const categories = useMemo(() => {
     const seen = new Map<string, string>();
     for (const s of series) {
@@ -36,18 +37,42 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
     return [...seen.entries()].map(([code, label]) => ({ code, label }));
   }, [series]);
 
+  const subCategories = useMemo(() => {
+    if (!activeCategory) return [];
+    const seen = new Map<string, string>();
+    for (const s of series) {
+      if (
+        s.topCategoryCode === activeCategory &&
+        s.subCategoryCode &&
+        !seen.has(s.subCategoryCode)
+      ) {
+        seen.set(s.subCategoryCode, s.subCategoryName ?? s.subCategoryCode);
+      }
+    }
+    return [...seen.entries()].map(([code, label]) => ({ code, label }));
+  }, [series, activeCategory]);
+
   const q = query.trim().toLowerCase();
   const visible = series.filter((s) => {
     const inCategory = !activeCategory || s.topCategoryCode === activeCategory;
+    const inSub = !activeSub || s.subCategoryCode === activeSub;
     const matchesQuery =
       !q ||
       s.name.toLowerCase().includes(q) ||
       s.seriesCode.toLowerCase().includes(q);
-    return inCategory && matchesQuery;
+    return inCategory && inSub && matchesQuery;
   });
 
   function selectCategory(code: string) {
     router.push(code ? `/?category=${code}` : "/");
+  }
+
+  function selectSub(code: string) {
+    router.push(
+      code
+        ? `/?category=${activeCategory}&sub=${code}`
+        : `/?category=${activeCategory}`,
+    );
   }
 
   return (
@@ -89,6 +114,25 @@ export function ShopClient({ series }: { series: SeriesSummary[] }) {
           />
         ))}
       </div>
+
+      {/* Subcategory tags — shown when a top category is selected */}
+      {subCategories.length > 0 && (
+        <div className="mt-2.5 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <SubCategoryTag
+            label={t("categoryAll")}
+            active={!activeSub}
+            onClick={() => selectSub("")}
+          />
+          {subCategories.map((c) => (
+            <SubCategoryTag
+              key={c.code}
+              label={c.label}
+              active={activeSub === c.code}
+              onClick={() => selectSub(c.code)}
+            />
+          ))}
+        </div>
+      )}
 
       {visible.length === 0 ? (
         <p className="mt-20 text-center text-neutral-500">
@@ -170,6 +214,30 @@ function CategoryTag({
         active
           ? "shrink-0 rounded-full border border-copper bg-copper px-4 py-1.5 text-sm font-medium text-white shadow-[inset_0_1px_2px_rgb(0,0,0,0.2)]"
           : "shrink-0 rounded-full border border-metal-silver/40 bg-transparent px-4 py-1.5 text-sm text-neutral-600 transition-all hover:border-copper hover:text-copper hover:shadow-sm"
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function SubCategoryTag({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "shrink-0 rounded-full border border-copper/60 bg-copper/15 px-3.5 py-1 text-xs font-medium text-copper"
+          : "shrink-0 rounded-full border border-metal-silver/30 bg-transparent px-3.5 py-1 text-xs text-neutral-500 transition-all hover:border-copper/50 hover:text-copper"
       }
     >
       {label}
