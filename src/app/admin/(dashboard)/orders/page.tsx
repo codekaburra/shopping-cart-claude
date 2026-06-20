@@ -11,8 +11,10 @@ export default async function AdminOrdersPage({
 }) {
   const { status: filterStatus } = await searchParams;
 
-  const where = filterStatus && ["PENDING", "PAID", "COMPLETED"].includes(filterStatus)
-    ? { status: filterStatus as "PENDING" | "PAID" | "COMPLETED" }
+  const validStatuses = ["PENDING_PAYMENT", "PENDING_VERIFICATION", "PENDING_SHIPMENT", "PENDING_PICKUP", "COMPLETED"] as const;
+  type Status = (typeof validStatuses)[number];
+  const where = filterStatus && (validStatuses as readonly string[]).includes(filterStatus)
+    ? { status: filterStatus as Status }
     : {};
 
   const orders = await prisma.order.findMany({
@@ -53,11 +55,13 @@ export default async function AdminOrdersPage({
     ),
   }));
 
-  const statuses = ["ALL", "PENDING", "PAID", "COMPLETED"] as const;
+  const statuses = ["ALL", "PENDING_PAYMENT", "PENDING_VERIFICATION", "PENDING_SHIPMENT", "PENDING_PICKUP", "COMPLETED"] as const;
   const statusLabels: Record<string, string> = {
     ALL: "全部",
-    PENDING: "待處理",
-    PAID: "已付款",
+    PENDING_PAYMENT: "待付款",
+    PENDING_VERIFICATION: "待核實收款",
+    PENDING_SHIPMENT: "待出貨",
+    PENDING_PICKUP: "待客戶交收",
     COMPLETED: "已完成",
   };
 

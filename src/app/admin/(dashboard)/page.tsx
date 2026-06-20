@@ -1,23 +1,45 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/i18n";
+import {
+  DailyRevenueOrdersChart,
+  MonthlyRevenueChart,
+  CategoryPieChart,
+} from "@/components/admin/DashboardCharts";
+import type {
+  DailyData,
+  MonthlyData,
+  CategoryData,
+} from "@/components/admin/DashboardCharts";
 
 export const dynamic = "force-dynamic";
+
+function toDateKey(d: Date) {
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function toMonthKey(d: Date) {
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default async function AdminDashboardPage() {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thirtyDaysAgo = new Date(todayStart);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [totalOrders, pendingOrders, todayOrders, allOrders] = await Promise.all([
-    prisma.order.count(),
-    prisma.order.count({ where: { status: "PENDING" } }),
-    prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.order.findMany({
-      include: { items: true },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-  ]);
+  const [totalOrders, pendingOrders, todayOrders, recentRawOrders] =
+    await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { status: "PENDING_PAYMENT" } }),
+      prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
+      prisma.order.findMany({
+        include: { items: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+    ]);
 
   const allItems = await prisma.orderItem.findMany({
     select: { unitPriceCents: true, quantity: true },
@@ -27,7 +49,7 @@ export default async function AdminDashboardPage() {
     0,
   );
 
-  const recentOrders = allOrders.map((o) => ({
+  const recentOrders = recentRawOrders.map((o) => ({
     id: o.id,
     contactName: o.contactName,
     status: o.status,
@@ -37,6 +59,97 @@ export default async function AdminDashboardPage() {
       0,
     ),
   }));
+
+  // --- Chart data ---
+
+  const chartOrders = await prisma.order.findMany({
+    where: { createdAt: { gte: sixMonthsAgo } },
+    select: {
+      createdAt: true,
+      items: { select: { unitPriceCents: true, quantity: true } },
+    },
+  });
+
+  // Daily (last 30 days)
+  const dailyMap = new Map<string, { revenue: number; orders: number }>();
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(thirtyDaysAgo);
+    d.setDate(d.getDate() + i);
+    dailyMap.set(toDateKey(d), { revenue: 0, orders: 0 });
+  }
+  for (const o of chartOrders) {
+    if (o.createdAt >= thirtyDaysAgo) {
+      const key = toDateKey(o.createdAt);
+      const entry = dailyMap.get(key);
+      if (entry) {
+        entry.orders += 1;
+        entry.revenue += o.items.reduce(
+          (s, i) => s + i.unitPriceCents * i.quantity,
+          0,
+        );
+      }
+    }
+  }
+  const dailyData: DailyData[] = Array.from(dailyMap.entries()).map(
+    ([date, v]) => ({ date, ...v }),
+  );
+
+  // Monthly (last 6 months)
+  const monthlyMap = new Map<string, { revenue: number; orders: number }>();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    monthlyMap.set(toMonthKey(d), { revenue: 0, orders: 0 });
+  }
+  for (const o of chartOrders) {
+    const key = toMonthKey(o.createdAt);
+    const entry = monthlyMap.get(key);
+    if (entry) {
+      entry.orders += 1;
+      entry.revenue += o.items.reduce(
+        (s, i) => s + i.unitPriceCents * i.quantity,
+        0,
+      );
+    }
+  }
+  const monthlyData: MonthlyData[] = Array.from(monthlyMap.entries()).map(
+    ([month, v]) => ({ month, ...v }),
+  );
+
+  // Category breakdown
+  const categoryItems = await prisma.orderItem.findMany({
+    select: {
+      unitPriceCents: true,
+      quantity: true,
+      variant: {
+        select: {
+          product: {
+            select: {
+              category: {
+                select: {
+                  displayName: true,
+                  name: true,
+                  parent: { select: { displayName: true, name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  const catMap = new Map<string, number>();
+  for (const item of categoryItems) {
+    const cat = item.variant.product.category;
+    const topCat = cat?.parent ?? cat;
+    const label = topCat?.displayName ?? topCat?.name ?? "未分類";
+    catMap.set(
+      label,
+      (catMap.get(label) ?? 0) + item.unitPriceCents * item.quantity,
+    );
+  }
+  const categoryData: CategoryData[] = Array.from(catMap.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 
   return (
     <div>
@@ -48,12 +161,21 @@ export default async function AdminDashboardPage() {
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="總訂單" value={String(totalOrders)} />
         <StatCard
-          label="待處理"
+          label="待付款"
           value={String(pendingOrders)}
           highlight={pendingOrders > 0}
         />
         <StatCard label="今日訂單" value={String(todayOrders)} />
         <StatCard label="總營收" value={formatPrice(revenueCents)} />
+      </div>
+
+      {/* Charts */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <DailyRevenueOrdersChart data={dailyData} />
+        </div>
+        <MonthlyRevenueChart data={monthlyData} />
+        <CategoryPieChart data={categoryData} />
       </div>
 
       {/* Recent orders */}
@@ -149,15 +271,17 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    PENDING:
-      "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
-    PAID: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-    COMPLETED:
-      "border-green-500/30 bg-green-500/10 text-green-400",
+    PENDING_PAYMENT: "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
+    PENDING_VERIFICATION: "border-orange-500/30 bg-orange-500/10 text-orange-400",
+    PENDING_SHIPMENT: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+    PENDING_PICKUP: "border-purple-500/30 bg-purple-500/10 text-purple-400",
+    COMPLETED: "border-green-500/30 bg-green-500/10 text-green-400",
   };
   const labels: Record<string, string> = {
-    PENDING: "待處理",
-    PAID: "已付款",
+    PENDING_PAYMENT: "待付款",
+    PENDING_VERIFICATION: "待核實收款",
+    PENDING_SHIPMENT: "待出貨",
+    PENDING_PICKUP: "待客戶交收",
     COMPLETED: "已完成",
   };
   return (
