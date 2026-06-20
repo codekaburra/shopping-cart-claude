@@ -54,7 +54,7 @@ export function ProductDetailClient({
   }
 
   return (
-    <div className="pb-24">
+    <div>
       <Link
         href="/"
         className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800"
@@ -64,7 +64,7 @@ export function ProductDetailClient({
 
       <div className="mt-4 grid gap-8 md:grid-cols-2 md:gap-12">
         {/* Product image / neutral placeholder */}
-        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl bg-stone-100 p-10">
+        <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl bg-stone-100 p-10 md:aspect-square">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -116,8 +116,8 @@ export function ProductDetailClient({
                   onClick={() => setSelectedId(v.id)}
                   className={
                     v.id === selected?.id
-                      ? "rounded-full border border-brand-600 bg-brand-600 px-4 py-2 text-sm font-medium text-white"
-                      : "rounded-full border border-stone-300 bg-transparent px-4 py-2 text-sm text-neutral-700 transition-colors hover:border-neutral-400"
+                      ? "rounded-full border border-copper bg-copper px-4 py-2 text-sm font-medium text-white"
+                      : "rounded-full border border-metal-silver/50 bg-transparent px-4 py-2 text-sm text-neutral-700 transition-colors hover:border-copper hover:text-copper"
                   }
                 >
                   {v.size}
@@ -125,26 +125,24 @@ export function ProductDetailClient({
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Sticky add-to-cart bar */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-[var(--background)]/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div>
-            <p className="text-xs text-neutral-500">{t("unitPrice")}</p>
-            <p className="text-xl font-semibold">
-              {selected ? formatPrice(selected.priceCents) : "—"}
-            </p>
+          {/* Price + Add to cart */}
+          <div className="mt-8 border-t border-metal-silver/30 pt-6">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-neutral-500">{t("unitPrice")}</span>
+              <span className="text-2xl font-semibold text-copper">
+                {selected ? formatPrice(selected.priceCents) : "—"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!selected}
+              className="btn-primary mt-4 w-full sm:w-auto sm:px-12"
+            >
+              {added ? `✓ ${t("added")}` : t("addToCart")}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!selected}
-            className="btn-primary flex-1 sm:flex-none sm:px-10"
-          >
-            {added ? `✓ ${t("added")}` : t("addToCart")}
-          </button>
         </div>
       </div>
     </div>

@@ -81,9 +81,6 @@ export function Sidebar({
           })}
         </nav>
 
-        <p className="px-6 py-5 font-mono text-[11px] leading-relaxed text-text-muted">
-          {t("sidebarNote")}
-        </p>
       </aside>
     </>
   );
