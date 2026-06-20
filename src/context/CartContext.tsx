@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -33,26 +34,27 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 const STORAGE_KEY = "cart";
 
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [items, setItems] = useState(loadCart);
+  const isFirstRender = useRef(true);
 
-  // Load persisted cart once on mount.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw) as CartItem[]);
-    } catch {
-      // ignore malformed storage
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-    setHydrated(true);
-  }, []);
-
-  // Persist on every change after hydration.
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, hydrated]);
+  }, [items]);
 
   const value = useMemo<CartContextValue>(() => {
     const addItem: CartContextValue["addItem"] = (variant, quantity = 1) => {
