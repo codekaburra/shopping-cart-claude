@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext";
-import { SiteHeader } from "@/components/SiteHeader";
-import { LocaleProvider } from "@/i18n/locale-context";
-import { getLocale } from "@/i18n/server";
 import { dictionary } from "@/i18n/zh-Hant";
+import { getLocale } from "@/i18n/server";
+import { LocaleProvider } from "@/i18n/locale-context";
 
 export const metadata: Metadata = {
   title: dictionary.appName,
@@ -23,15 +21,8 @@ export default async function RootLayout({
       lang={locale === "en" ? "en" : "zh-Hant"}
       className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900">
-        <LocaleProvider locale={locale}>
-          <CartProvider>
-            <SiteHeader />
-            <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
-              {children}
-            </main>
-          </CartProvider>
-        </LocaleProvider>
+      <body className="min-h-full bg-neutral-beige text-neutral-900">
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );

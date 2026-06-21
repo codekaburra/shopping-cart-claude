@@ -55,6 +55,7 @@ export default async function ProductPage({
     <ProductDetailClient
       productName={pick(locale, product.name, product.nameEn) ?? product.name}
       seriesCode={product.seriesCode}
+      imageUrl={product.imageUrl}
       summary={pick(locale, product.summary, product.summaryEn)}
       detail={pick(locale, product.detail, product.detailEn)}
       material={pick(locale, product.material, product.materialEn)}

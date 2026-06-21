@@ -37,7 +37,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  // Load persisted cart once on mount.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -47,8 +47,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     setHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Persist on every change after hydration.
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
