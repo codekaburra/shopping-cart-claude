@@ -58,8 +58,8 @@ async function main() {
 
     const statusRoll = Math.random();
     const status = date < new Date(Date.now() - 7 * 86400000)
-      ? (statusRoll < 0.6 ? "COMPLETED" : statusRoll < 0.9 ? "PAID" : "PENDING")
-      : (statusRoll < 0.3 ? "COMPLETED" : statusRoll < 0.6 ? "PAID" : "PENDING");
+      ? (statusRoll < 0.5 ? "COMPLETED" : statusRoll < 0.7 ? "PENDING_PICKUP" : statusRoll < 0.85 ? "PENDING_SHIPMENT" : statusRoll < 0.95 ? "PENDING_VERIFICATION" : "PENDING_PAYMENT")
+      : (statusRoll < 0.2 ? "COMPLETED" : statusRoll < 0.4 ? "PENDING_PICKUP" : statusRoll < 0.6 ? "PENDING_SHIPMENT" : statusRoll < 0.8 ? "PENDING_VERIFICATION" : "PENDING_PAYMENT");
 
     const isDelivery = Math.random() < 0.3;
 
