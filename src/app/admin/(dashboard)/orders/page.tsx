@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatPrice } from "@/i18n";
 import { OrderStatusControl } from "@/components/admin/OrderStatusControl";
 import { OrderPageTabs } from "@/components/admin/OrderPageTabs";
+import { PickedToggle } from "@/components/admin/PickedToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -227,9 +228,11 @@ async function PickingView() {
   });
 
   type PickingOrder = {
+    itemId: string;
     orderId: string;
     contactName: string;
     qty: number;
+    picked: boolean;
   };
   type PickingCard = {
     variantId: string;
@@ -247,9 +250,11 @@ async function PickingView() {
     for (const item of order.items) {
       const existing = cardMap.get(item.variantId);
       const entry: PickingOrder = {
+        itemId: item.id,
         orderId: order.id,
         contactName: order.contactName,
         qty: item.quantity,
+        picked: item.picked,
       };
       if (existing) {
         existing.totalQty += item.quantity;
@@ -332,10 +337,11 @@ async function PickingView() {
                 <div className="space-y-1.5">
                   {card.orders.map((o) => (
                     <div
-                      key={o.orderId}
-                      className="flex items-center justify-between text-sm"
+                      key={o.itemId}
+                      className={`flex items-center gap-2.5 text-sm ${o.picked ? "opacity-50" : ""}`}
                     >
-                      <span className="text-text-secondary">
+                      <PickedToggle itemId={o.itemId} initialPicked={o.picked} />
+                      <span className={`flex-1 text-text-secondary ${o.picked ? "line-through" : ""}`}>
                         <span className="font-mono text-xs text-text-muted">
                           #{o.orderId.slice(0, 8)}
                         </span>{" "}

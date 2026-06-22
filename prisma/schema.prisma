@@ -111,4 +111,5 @@ model OrderItem {
   productName    String
   variantSize    String
   sku            String
+  picked         Boolean        @default(false)
 }
