@@ -16,8 +16,10 @@ enum Fulfillment {
 }
 
 enum OrderStatus {
-  PENDING
-  PAID
+  PENDING_PAYMENT
+  PENDING_VERIFICATION
+  PENDING_SHIPMENT
+  PENDING_PICKUP
   COMPLETED
 }
 
@@ -92,7 +94,7 @@ model Order {
   note         String?
   fulfillment  Fulfillment
   address      String? // required when fulfillment is DELIVERY (enforced in the API)
-  status       OrderStatus @default(PENDING)
+  status       OrderStatus @default(PENDING_PAYMENT)
   createdAt    DateTime    @default(now())
   items        OrderItem[]
 }
