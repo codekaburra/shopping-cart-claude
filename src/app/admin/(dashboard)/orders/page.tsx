@@ -472,9 +472,12 @@ async function OrderListView({ filterStatus }: { filterStatus?: string }) {
               {/* Header */}
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-xs text-text-muted">
-                    #{order.id.slice(0, 8)}
-                  </p>
+                  <a
+                    href={`/admin/orders/${order.id}`}
+                    className="font-mono text-xs text-text-muted transition-colors hover:text-copper"
+                  >
+                    #{order.id.slice(0, 8)} →
+                  </a>
                   <p className="mt-1 text-lg font-semibold text-text-primary">
                     {order.contactName}
                   </p>
