@@ -1,0 +1,210 @@
+# Stationery Ordering Platform
+
+A bilingual stationery ordering app built with Next.js 16, React 19, Prisma 7, and SQLite. It includes a customer shop, invite-code checkout, and a separate admin dashboard for orders, analytics, and fulfillment.
+
+## Features
+
+### Customer Shop
+
+- Product catalog with category filtering and search
+- Traditional Chinese and English UI
+- Product detail pages with variant and size selection
+- Cart drawer plus full cart page
+- Checkout with pickup or delivery fulfillment
+- Invite-code login required at checkout
+- Order confirmation and status page
+
+### Admin Dashboard
+
+- Separate admin login with signed session cookie
+- Dashboard metrics for orders, pending work, revenue, and daily activity
+- Recharts-based analytics
+- Order list and order detail views
+- Five-step order status workflow:
+  `PENDING_PAYMENT` -> `PENDING_VERIFICATION` -> `PENDING_SHIPMENT` -> `PENDING_PICKUP` -> `COMPLETED`
+- Fulfillment views for pending shipments, stock shortages, and picking lists
+- Product catalog management view
+
+## Tech Stack
+
+| Area | Technology |
+|---|---|
+| Framework | Next.js 16 App Router |
+| UI | React 19 |
+| Styling | Tailwind CSS 4 |
+| Database | Prisma 7 + SQLite |
+| SQLite adapter | `@prisma/adapter-better-sqlite3` |
+| Charts | Recharts |
+| Language | TypeScript |
+
+Prisma client output is generated to `src/generated/prisma/`. Import the generated client from that path instead of importing directly from `@prisma/client`.
+
+## Project Structure
+
+```text
+src/
+  app/
+    (shop)/          Customer routes: shop, product, cart, checkout, login, order
+    admin/           Admin login and dashboard routes
+    api/             API route handlers
+  components/        Shared UI and admin components
+  context/           Client-side cart state
+  i18n/              Locale dictionaries and helpers
+  lib/               Database, customer session, and admin session helpers
+  proxy.ts           Route protection for checkout
+
+data/products/       Static catalog source and English translations
+prisma/              Prisma schema, migrations, and seed script
+scripts/             Catalog import and mock order scripts
+screenshots/         README image assets
+```
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env` file:
+
+```env
+DATABASE_URL="file:./dev.db"
+SESSION_SECRET="<generate with: openssl rand -base64 32>"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="<secure-password>"
+```
+
+Apply migrations and generate the Prisma client:
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+Seed invite-code users:
+
+```bash
+npx prisma db seed
+```
+
+Import the product catalog:
+
+```bash
+npm run import:catalog
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open:
+
+- Shop: [http://localhost:3000](http://localhost:3000)
+- Admin dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
+
+## Available Scripts
+
+```bash
+npm run dev             # Start local development server
+npm run build           # Build for production
+npm run start           # Start production server
+npm run lint            # Run ESLint
+npm run import:catalog  # Import catalog data into SQLite
+```
+
+Useful one-off commands:
+
+```bash
+npx prisma migrate dev  # Apply local migrations
+npx prisma generate     # Regenerate Prisma client
+npx prisma db seed      # Seed invite-code users
+npx tsc --noEmit        # Type check
+```
+
+## Authentication
+
+The app has two separate authentication flows.
+
+Customer auth uses invite codes and stores a signed `session` cookie. Customers can browse and add to cart as guests, but checkout and order creation require a valid customer session.
+
+Admin auth uses `ADMIN_USERNAME` and `ADMIN_PASSWORD` from `.env` and stores a signed `admin_session` cookie. Admin pages are protected by server-side layout checks.
+
+## Internationalization
+
+The UI supports Traditional Chinese and English.
+
+- Locale cookie: `locale`
+- Default locale: Traditional Chinese
+- UI dictionaries: `src/i18n/zh-Hant.ts` and `src/i18n/en.ts`
+- Server locale helper: `src/i18n/server.ts`
+- Client locale provider: `src/i18n/locale-context.tsx`
+
+When adding user-facing text, add entries to both locale dictionaries.
+
+## Data Model
+
+Core Prisma models:
+
+- `User`: invite-code customer accounts
+- `Category`: self-referential category tree
+- `Product`: product series with bilingual content fields
+- `ProductVariant`: purchasable SKU, size, price, and stock
+- `Order`: checkout record with contact, fulfillment, and status
+- `OrderItem`: denormalized item snapshot for historical order accuracy
+
+Prices are stored as cents in `priceCents` / `unitPriceCents`.
+
+## Catalog Data
+
+Product data lives in TypeScript files under `data/products/`.
+
+- `catalog-2026-06-17.ts`: source catalog
+- `translations-en.ts`: English category and product labels
+- `detail-content-samples.ts`: richer product detail content examples
+
+Run this command after changing catalog data:
+
+```bash
+npm run import:catalog
+```
+
+Important: `import:catalog` replaces product, category, and order data. It does not delete users.
+
+## Screenshots
+
+### Shop Homepage
+
+![Shop Homepage](screenshots/shop-homepage.png)
+
+### Product Detail
+
+![Product Detail](screenshots/product-detail.png)
+
+### Admin Dashboard
+
+![Admin Dashboard](screenshots/admin-dashboard.png)
+
+### Order Management
+
+![Order Management](screenshots/admin-orders.png)
+
+### Mobile Shop
+
+<img src="screenshots/mobile-shop.png" width="390" alt="Mobile Shop" />
+
+## Development Notes
+
+- This project uses Next.js 16. Check `node_modules/next/dist/docs/` before changing routing, proxy, or server APIs.
+- Route protection uses `src/proxy.ts`; there is no `middleware.ts`.
+- Cart state is client-side and persisted with `localStorage`.
+- Order item names, SKUs, variants, and prices are snapshot at purchase time.
+- SQLite is suitable for local development and simple single-server deployments.
+- Do not commit `.env` or hardcode credentials.
+
+## CI
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs install, Prisma generation, linting, type checking, and production build checks for pushes and pull requests.
