@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Deploy / redeploy the app
+# Run as ubuntu user: bash deploy/deploy.sh
+set -euo pipefail
+
+APP_DIR="/home/ubuntu/shopping-cart-claude"
+REPO="git@github.com:codekaburra/shopping-cart-claude.git"
+BRANCH="${1:-main}"
+
+echo "=== Deploying branch: $BRANCH ==="
+
+# Clone or pull
+if [ ! -d "$APP_DIR/.git" ]; then
+  echo "=== Cloning repo ==="
+  git clone -b "$BRANCH" "$REPO" "$APP_DIR"
+  cd "$APP_DIR"
+else
+  cd "$APP_DIR"
+  echo "=== Pulling latest ==="
+  git fetch origin
+  git checkout "$BRANCH"
+  git pull origin "$BRANCH"
+fi
+
+# Check .env exists
+if [ ! -f .env ]; then
+  echo ""
+  echo "ERROR: .env file not found!"
+  echo "Create it first:"
+  echo '  cat > .env << EOF'
+  echo '  DATABASE_URL="file:./prod.db"'
+  echo '  SESSION_SECRET="<generate-a-32-byte-random-string>"'
+  echo '  ADMIN_USERNAME="admin"'
+  echo '  ADMIN_PASSWORD="<your-secure-password>"'
+  echo '  EOF'
+  echo ""
+  exit 1
+fi
+
+echo "=== Installing dependencies ==="
+npm ci --omit=dev
+
+echo "=== Running database migrations ==="
+npx prisma migrate deploy
+
+echo "=== Building ==="
+npm run build
+
+echo "=== Restarting PM2 ==="
+pm2 startOrRestart ecosystem.config.js
+pm2 save
+
+echo ""
+echo "Deploy complete! App running at http://$(curl -s ifconfig.me)"

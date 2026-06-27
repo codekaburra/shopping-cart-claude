@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatPrice } from "@/i18n";
 import { OrderStatusControl } from "@/components/admin/OrderStatusControl";
 import { OrderPageTabs } from "@/components/admin/OrderPageTabs";
-import { PickedToggle } from "@/components/admin/PickedToggle";
+import { PickingViewClient } from "@/components/admin/PickingViewClient";
 
 export const dynamic = "force-dynamic";
 
@@ -281,85 +281,7 @@ async function PickingView() {
     );
   }
 
-  return (
-    <div className="mt-6 space-y-4">
-      <p className="text-sm text-text-muted">
-        共 {cards.length} 項商品，來自 {pendingOrders.length} 張訂單
-      </p>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => {
-          const isShort = card.totalQty > card.stock;
-          return (
-            <div
-              key={card.variantId}
-              className={`rounded-xl border p-4 ${
-                isShort
-                  ? "border-red-400/40 bg-red-500/5"
-                  : "border-metal-silver/20 bg-concrete/10"
-              }`}
-            >
-              {/* Product header */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-semibold text-text-primary">
-                    {card.productName}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    {card.variantSize}
-                  </p>
-                  <p className="mt-0.5 font-mono text-xs text-text-muted">
-                    {card.sku}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-2xl font-bold text-text-primary">
-                    {card.totalQty}
-                  </p>
-                  <p className="text-xs text-text-muted">需出貨</p>
-                </div>
-              </div>
-
-              {/* Stock info */}
-              <div className="mt-3 flex gap-3 text-xs">
-                <span className="text-text-muted">
-                  庫存：<span className="font-semibold text-text-secondary">{card.stock}</span>
-                </span>
-                <span className={isShort ? "font-semibold text-red-400" : "text-green-400"}>
-                  {isShort ? `缺 ${card.totalQty - card.stock}` : "庫存充足"}
-                </span>
-              </div>
-
-              {/* Per-order breakdown */}
-              <div className="mt-3 border-t border-metal-silver/15 pt-3">
-                <p className="mb-2 text-xs uppercase tracking-wider text-text-muted">
-                  訂單明細
-                </p>
-                <div className="space-y-1.5">
-                  {card.orders.map((o) => (
-                    <div
-                      key={o.itemId}
-                      className={`flex items-center gap-2.5 text-sm ${o.picked ? "opacity-50" : ""}`}
-                    >
-                      <PickedToggle itemId={o.itemId} initialPicked={o.picked} />
-                      <span className={`flex-1 text-text-secondary ${o.picked ? "line-through" : ""}`}>
-                        <span className="font-mono text-xs text-text-muted">
-                          #{o.orderId.slice(0, 8)}
-                        </span>{" "}
-                        {o.contactName}
-                      </span>
-                      <span className="font-semibold text-text-primary">
-                        ×{o.qty}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <PickingViewClient cards={cards} orderCount={pendingOrders.length} />;
 }
 
 function StatCard({

@@ -40,10 +40,15 @@ function formatPrice(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+type Mode = "view" | "edit" | "picking";
+
 export function OrderDetailClient({ order }: { order: OrderData }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<Mode>("view");
   const [saving, setSaving] = useState(false);
+
+  const editing = mode === "edit";
+  const picking = mode === "picking";
 
   const [contactName, setContactName] = useState(order.contactName);
   const [contactPhone, setContactPhone] = useState(order.contactPhone);
@@ -54,7 +59,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
   const [removedIds, setRemovedIds] = useState<string[]>([]);
 
   function startEdit() {
-    setEditing(true);
+    setMode("edit");
     setContactName(order.contactName);
     setContactPhone(order.contactPhone);
     setNote(order.note ?? "");
@@ -64,8 +69,8 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
     setRemovedIds([]);
   }
 
-  function cancelEdit() {
-    setEditing(false);
+  function exitMode() {
+    setMode("view");
   }
 
   function updateQty(id: string, qty: number) {
@@ -103,7 +108,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
         }),
       });
       if (res.ok) {
-        setEditing(false);
+        setMode("view");
         router.refresh();
       }
     } finally {
@@ -130,19 +135,38 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
           </svg>
           返回訂單列表
         </a>
-        {!editing ? (
-          <button
-            type="button"
-            onClick={startEdit}
-            className="rounded-lg border border-copper/40 px-4 py-2 text-sm font-medium text-copper transition-colors hover:bg-copper/10"
-          >
-            編輯訂單
-          </button>
-        ) : (
+        {mode === "view" && (
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={cancelEdit}
+              onClick={() => setMode("picking")}
+              className="rounded-lg border border-green-500/40 px-4 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/10"
+            >
+              點貨模式
+            </button>
+            <button
+              type="button"
+              onClick={startEdit}
+              className="rounded-lg border border-copper/40 px-4 py-2 text-sm font-medium text-copper transition-colors hover:bg-copper/10"
+            >
+              編輯訂單
+            </button>
+          </div>
+        )}
+        {mode === "picking" && (
+          <button
+            type="button"
+            onClick={exitMode}
+            className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20"
+          >
+            完成點貨
+          </button>
+        )}
+        {mode === "edit" && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={exitMode}
               className="rounded-lg border border-metal-silver/30 px-4 py-2 text-sm text-text-secondary transition-colors hover:bg-concrete/30"
             >
               取消
@@ -231,10 +255,10 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
           {displayItems.map((item) => (
             <div
               key={item.id}
-              className={`rounded-lg border border-metal-silver/10 p-3 ${item.picked && !editing ? "bg-green-500/5" : ""}`}
+              className={`rounded-lg border border-metal-silver/10 p-3 ${item.picked && !editing ? "bg-green-500/5" : ""} ${picking ? "border-green-500/20" : ""}`}
             >
               <div className="flex items-center gap-3">
-                {!editing && (
+                {picking && (
                   <PickedToggle itemId={item.id} initialPicked={item.picked} />
                 )}
 
