@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy / redeploy the app
-# Run as ubuntu user: bash deploy/deploy.sh
+# Run as ubuntu user: sudo -u ubuntu bash deploy/deploy.sh
 set -euo pipefail
 
 APP_DIR="/home/ubuntu/shopping-cart-claude"
@@ -38,7 +38,10 @@ if [ ! -f .env ]; then
 fi
 
 echo "=== Installing dependencies ==="
-npm ci --omit=dev
+npm ci
+
+echo "=== Generating Prisma client ==="
+npx prisma generate
 
 echo "=== Running database migrations ==="
 npx prisma migrate deploy
