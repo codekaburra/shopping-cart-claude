@@ -81,11 +81,11 @@ export function DailyRevenueOrdersChart({ data }: { data: DailyData[] }) {
           />
           <Tooltip
             {...tooltipStyle}
-            formatter={(value: number, name: string) =>
+            formatter={((value: number, name: string) =>
               name === "revenue"
                 ? [`$${(value / 100).toFixed(2)}`, "營收"]
                 : [value, "訂單數"]
-            }
+            ) as never}
           />
           <Area
             yAxisId="revenue"
@@ -142,11 +142,11 @@ export function MonthlyRevenueChart({ data }: { data: MonthlyData[] }) {
           />
           <Tooltip
             {...tooltipStyle}
-            formatter={(value: number, name: string) =>
+            formatter={((value: number, name: string) =>
               name === "revenue"
                 ? [`$${(value / 100).toFixed(2)}`, "營收"]
                 : [value, "訂單數"]
-            }
+            ) as never}
           />
           <Bar
             yAxisId="revenue"
@@ -195,7 +195,7 @@ export function CategoryPieChart({ data }: { data: CategoryData[] }) {
           </Pie>
           <Tooltip
             {...tooltipStyle}
-            formatter={(value: number) => [`$${(value / 100).toFixed(2)}`, "營收"]}
+            formatter={((value: number) => [`$${(value / 100).toFixed(2)}`, "營收"]) as never}
           />
           <Legend
             wrapperStyle={{ fontSize: "12px", color: "#b8b8b8" }}
