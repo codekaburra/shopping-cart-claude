@@ -305,28 +305,60 @@ Product data lives in TypeScript files under `data/products/`:
 
 Single EC2 instance with Nginx reverse proxy and PM2 process manager.
 
-### Quick Start
+### Step 1: Create an EC2 Instance
+
+1. Go to [AWS Console](https://console.aws.amazon.com/) → EC2 → **Launch Instance**
+2. Settings:
+   - **Name**: `shopping-cart`
+   - **AMI**: Ubuntu 24.04 LTS
+   - **Instance type**: `t3.micro` (free tier) or `t3.small`
+   - **Key pair**: Create new → download the `.pem` file → keep it safe
+   - **Network / Security Group**: Allow these ports:
+     - SSH (22) — your IP only
+     - HTTP (80) — Anywhere
+     - HTTPS (443) — Anywhere
+   - **Storage**: 20 GB gp3
+3. Click **Launch Instance**
+
+### Step 2: SSH into the Server
 
 ```bash
-# SSH into EC2
-ssh -i your-key.pem ubuntu@<ec2-public-ip>
+# Make key file private
+chmod 400 your-key.pem
 
-# Clone and run first-time setup
+# Connect
+ssh -i your-key.pem ubuntu@<your-ec2-public-ip>
+```
+
+You can find the public IP on the EC2 dashboard.
+
+### Step 3: Deploy
+
+Once you're SSH'd in:
+
+```bash
+# 1. Clone the repo
 git clone git@github.com:codekaburra/shopping-cart-claude.git
 cd shopping-cart-claude
+
+# 2. Run setup (installs Node.js, PM2, Nginx)
 sudo bash deploy/setup.sh
 
-# Create .env (use production values!)
+# 3. Create .env (use production values!)
 cat > .env << 'EOF'
 DATABASE_URL="file:./prod.db"
-SESSION_SECRET="<generate with: openssl rand -base64 32>"
+SESSION_SECRET="$(openssl rand -base64 32)"
 ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="<strong-password>"
+ADMIN_PASSWORD="<your-password-here>"
 EOF
 
-# Deploy
+# 4. Deploy the app
 bash deploy/deploy.sh
 ```
+
+### Step 4: Verify
+
+Open `http://<your-ec2-public-ip>` in your browser — you should see the shop homepage.
 
 ### Deploy Scripts
 
@@ -345,6 +377,26 @@ pm2 status                  # check app status
 pm2 logs shop               # view app logs
 pm2 restart shop            # restart app
 ```
+
+### Multi-Developer SSH Access
+
+Each developer generates their own SSH key:
+
+```bash
+ssh-keygen -t ed25519 -C "developer@email.com"
+```
+
+Then add their public key to the server:
+
+```bash
+# SSH in with the original .pem
+ssh -i your-key.pem ubuntu@<ec2-ip>
+
+# Add their public key
+echo "ssh-ed25519 AAAA... developer@email.com" >> ~/.ssh/authorized_keys
+```
+
+Revoke access by removing their line from `~/.ssh/authorized_keys`.
 
 ### HTTPS (Optional)
 
