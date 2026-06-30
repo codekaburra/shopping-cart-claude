@@ -4,7 +4,7 @@
 set -euo pipefail
 
 APP_DIR="/home/ubuntu/shopping-cart-claude"
-REPO="https://github.com/codekaburra/shopping-cart-claude.git"
+REPO="git@github.com:codekaburra/shopping-cart-claude.git"
 BRANCH="${1:-main}"
 
 echo "=== Deploying branch: $BRANCH ==="
