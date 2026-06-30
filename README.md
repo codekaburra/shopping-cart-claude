@@ -325,7 +325,7 @@ ADMIN_PASSWORD="<strong-password>"
 EOF
 
 # Deploy
-bash deploy/deploy.sh
+sudo -u ubuntu bash deploy/deploy.sh
 ```
 
 ### Deploy Scripts
@@ -340,7 +340,7 @@ bash deploy/deploy.sh
 ### Common Operations
 
 ```bash
-bash deploy/deploy.sh      # redeploy after code changes
+sudo -u ubuntu bash deploy/deploy.sh      # redeploy after code changes
 pm2 status                  # check app status
 pm2 logs shop               # view app logs
 pm2 restart shop            # restart app
