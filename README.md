@@ -238,7 +238,7 @@ A dark-background theme inspired by industrial aesthetics with luxury copper acc
 ### Setup
 
 ```bash
-git clone git@github.com:codekaburra/shopping-cart-claude.git
+git clone https://github.com/codekaburra/shopping-cart-claude.git
 cd shopping-cart-claude
 npm install
 npx prisma migrate dev
@@ -312,7 +312,7 @@ Single EC2 instance with Nginx reverse proxy and PM2 process manager.
 ssh -i your-key.pem ubuntu@<ec2-public-ip>
 
 # Clone and run first-time setup
-git clone git@github.com:codekaburra/shopping-cart-claude.git
+git clone https://github.com/codekaburra/shopping-cart-claude.git
 cd shopping-cart-claude
 sudo bash deploy/setup.sh
 
