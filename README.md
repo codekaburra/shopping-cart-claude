@@ -326,6 +326,9 @@ EOF
 
 # Deploy
 sudo -u ubuntu bash deploy/deploy.sh
+
+# Load product catalog (shop is empty without this)
+npm run import:catalog
 ```
 
 ### Deploy Scripts
