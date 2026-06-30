@@ -38,7 +38,10 @@ if [ ! -f .env ]; then
 fi
 
 echo "=== Installing dependencies ==="
-npm ci --omit=dev
+npm ci
+
+echo "=== Generating Prisma client ==="
+npx prisma generate
 
 echo "=== Running database migrations ==="
 npx prisma migrate deploy
