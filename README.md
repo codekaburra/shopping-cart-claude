@@ -327,8 +327,8 @@ EOF
 # Deploy
 sudo -u ubuntu bash deploy/deploy.sh
 
-# Load product catalog (shop is empty without this)
-npm run import:catalog
+# Load catalog + demo users + 1000 mock orders (shop is empty without this)
+npm run import:catalog_mock
 ```
 
 ### Deploy Scripts
