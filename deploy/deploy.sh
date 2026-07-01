@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 # Deploy / redeploy the app
-# Run as ubuntu user: sudo -u ubuntu bash deploy/deploy.sh
+# Run as the ubuntu user (NOT root): bash deploy/deploy.sh
 set -euo pipefail
+
+# Refuse to run as root. Running with sudo makes npm write root-owned files
+# into node_modules, which then break the next non-sudo deploy (EACCES).
+if [ "$(id -u)" -eq 0 ]; then
+  echo "ERROR: do not run deploy.sh with sudo/root."
+  echo "Run it as the ubuntu user:  bash deploy/deploy.sh"
+  exit 1
+fi
 
 APP_DIR="/home/ubuntu/shopping-cart-claude"
 REPO="git@github.com:codekaburra/shopping-cart-claude.git"
