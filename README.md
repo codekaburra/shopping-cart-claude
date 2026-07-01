@@ -325,7 +325,7 @@ ADMIN_PASSWORD="<strong-password>"
 EOF
 
 # Deploy
-sudo -u ubuntu bash deploy/deploy.sh
+bash deploy/deploy.sh
 
 # Load catalog + demo users + 1000 mock orders (shop is empty without this)
 npm run import:catalog_mock
@@ -343,7 +343,7 @@ npm run import:catalog_mock
 ### Common Operations
 
 ```bash
-sudo -u ubuntu bash deploy/deploy.sh      # redeploy after code changes
+bash deploy/deploy.sh      # redeploy after code changes
 pm2 status                  # check app status
 pm2 logs shop               # view app logs
 pm2 restart shop            # restart app
