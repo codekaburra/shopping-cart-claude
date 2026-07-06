@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { SESSION_COOKIE, createSessionToken } from "@/lib/session";
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE_SECONDS,
+  createSessionToken,
+} from "@/lib/session";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
@@ -24,7 +28,7 @@ export async function POST(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
   return response;
 }
