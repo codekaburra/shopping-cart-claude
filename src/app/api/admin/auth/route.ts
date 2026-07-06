@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   ADMIN_COOKIE,
-  ADMIN_MAX_AGE_SECONDS,
+  ADMIN_SESSION_LIFETIME_SECONDS,
   createAdminToken,
   validateCredentials,
 } from "@/lib/admin-session";
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: ADMIN_MAX_AGE_SECONDS,
+    maxAge: ADMIN_SESSION_LIFETIME_SECONDS,
   });
   return response;
 }

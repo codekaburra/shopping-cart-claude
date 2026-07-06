@@ -8,7 +8,7 @@ export const ADMIN_COOKIE = "admin_session";
 
 // Token and cookie lifetime: 24 hours. Keep the two in sync so a cookie the
 // browser still sends is never rejected as expired (or vice versa).
-export const ADMIN_MAX_AGE_SECONDS = 60 * 60 * 24;
+export const ADMIN_SESSION_LIFETIME_SECONDS = 60 * 60 * 24;
 
 function getCredentials() {
   const username = process.env.ADMIN_USERNAME;
@@ -35,7 +35,7 @@ export async function verifyAdminToken(
 ): Promise<AdminPayload | null> {
   const payload = await verifyToken<AdminPayload>(
     token,
-    ADMIN_MAX_AGE_SECONDS * 1000,
+    ADMIN_SESSION_LIFETIME_SECONDS * 1000,
   );
   if (!payload || payload.role !== "admin") return null;
   return payload;
