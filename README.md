@@ -2,6 +2,69 @@
 
 A bilingual (Traditional Chinese / English) stationery ordering platform with a full-featured admin dashboard. Built for small retail shops that take orders online and fulfill them in-store or via delivery.
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22+
+- npm
+
+### Quick setup
+
+```bash
+git clone git@github.com:codekaburra/shopping-cart-claude.git
+cd shopping-cart-claude
+npm install
+cp .env.example .env          # set SESSION_SECRET and ADMIN_PASSWORD
+npx prisma migrate dev
+npm run import:catalog          # 65 product series / 245 variants
+npx prisma db seed              # demo invite codes: xxxx, demo2
+npm run dev
+```
+
+Open the shop at [http://localhost:3000](http://localhost:3000) and the admin dashboard at [http://localhost:3000/admin](http://localhost:3000/admin).
+
+| What | How |
+|---|---|
+| Shop checkout login | Invite code `xxxx` or `demo2` |
+| Admin login | Values from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `.env` |
+
+### Environment variables
+
+Copy `.env.example` to `.env` and fill in the required values:
+
+```env
+DATABASE_URL="file:./dev.db"
+SESSION_SECRET="<generate with: openssl rand -base64 32>"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="your-password"
+```
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | SQLite file path. Use `file:./dev.db` locally |
+| `SESSION_SECRET` | Yes | HMAC key for signing customer and admin session cookies |
+| `ADMIN_USERNAME` | Yes | Admin login username |
+| `ADMIN_PASSWORD` | Yes | Admin login password |
+
+Environment variables are loaded via `dotenv` in `prisma.config.ts`.
+
+### Useful commands
+
+```bash
+npm run dev             # Start local development server
+npm run build           # Build for production
+npm run start           # Start production server
+npm run lint            # Run ESLint
+npm run import:catalog  # Import catalog data into SQLite
+npx prisma generate     # Regenerate Prisma client after schema changes
+npx tsc --noEmit        # Type check
+```
+
+**Catalog import warning:** `npm run import:catalog` replaces all product, category, and order data. It does not delete users.
+
+---
+
 ## Screenshots
 
 ### Shop Homepage
@@ -228,76 +291,14 @@ A dark-background theme inspired by industrial aesthetics with luxury copper acc
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 22+
-- npm
-
-### Setup
-
-```bash
-git clone git@github.com:codekaburra/shopping-cart-claude.git
-cd shopping-cart-claude
-npm install
-npx prisma migrate dev
-npm run import:catalog   # seed 65 product series / 245 variants
-npm run dev
-```
-
-### Environment Variables
-
-Create a `.env` file:
-
-```env
-DATABASE_URL="file:./dev.db"
-SESSION_SECRET="<generate with: openssl rand -base64 32>"
-ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="your-password"
-```
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | SQLite file path. Use `file:./dev.db` locally |
-| `SESSION_SECRET` | Yes | HMAC key for signing admin session cookies. Prevents cookie forgery |
-| `ADMIN_USERNAME` | Yes | Admin login username |
-| `ADMIN_PASSWORD` | Yes | Admin login password |
-
-Environment variables are loaded via `dotenv` in `prisma.config.ts`.
-
-### URLs
-
-- Shop: [http://localhost:3000](http://localhost:3000)
-- Admin: [http://localhost:3000/admin](http://localhost:3000/admin)
-
-### Available Scripts
-
-```bash
-npm run dev             # Start local development server
-npm run build           # Build for production
-npm run start           # Start production server
-npm run lint            # Run ESLint
-npm run import:catalog  # Import catalog data into SQLite
-```
-
-Useful one-off commands:
-
-```bash
-npx prisma migrate dev  # Apply local migrations
-npx prisma generate     # Regenerate Prisma client after schema changes
-npx prisma db seed      # Seed invite-code users
-npx tsc --noEmit        # Type check
-```
-
-### Catalog Data
+## Catalog Data
 
 Product data lives in TypeScript files under `data/products/`:
 
 - `catalog-2026-06-17.ts` — source catalog (65 series / 245 variants)
 - `translations-en.ts` — English labels for categories and products
 
-**Warning:** `npm run import:catalog` replaces all product, category, and order data. It does not delete users.
+Import with `npm run import:catalog`. For a full demo dataset (catalog + users + mock orders), use `npm run import:catalog_mock`.
 
 ---
 
