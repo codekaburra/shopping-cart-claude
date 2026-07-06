@@ -1,6 +1,14 @@
+// Admin session tokens and credential check, built on the shared HMAC
+// helpers in token.ts.
+
 import { cookies } from "next/headers";
+import { signToken, verifyToken, type TokenPayload } from "./token";
 
 export const ADMIN_COOKIE = "admin_session";
+
+// Token and cookie lifetime: 24 hours. Keep the two in sync so a cookie the
+// browser still sends is never rejected as expired (or vice versa).
+export const ADMIN_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 function getCredentials() {
   const username = process.env.ADMIN_USERNAME;
@@ -16,66 +24,21 @@ export function validateCredentials(username: string, password: string): boolean
   return username === creds.username && password === creds.password;
 }
 
-function getSecret(): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET is not set");
-  return secret;
-}
-
-function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(padded);
-  const buffer = new ArrayBuffer(binary.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-async function importKey(): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(getSecret()),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-}
-
-type AdminPayload = { role: "admin"; iat: number };
+type AdminPayload = TokenPayload & { role: "admin" };
 
 export async function createAdminToken(): Promise<string> {
-  const payload: AdminPayload = { role: "admin", iat: Date.now() };
-  const data = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
-  const key = await importKey();
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
-  return `${data}.${base64UrlEncode(new Uint8Array(signature))}`;
+  return signToken({ role: "admin" });
 }
 
-export async function verifyAdminToken(token: string | undefined): Promise<AdminPayload | null> {
-  if (!token) return null;
-  const [data, signature] = token.split(".");
-  if (!data || !signature) return null;
-  try {
-    const key = await importKey();
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      base64UrlDecode(signature),
-      new TextEncoder().encode(data),
-    );
-    if (!valid) return null;
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(data))) as AdminPayload;
-    if (payload.role !== "admin") return null;
-    return payload;
-  } catch {
-    return null;
-  }
+export async function verifyAdminToken(
+  token: string | undefined,
+): Promise<AdminPayload | null> {
+  const payload = await verifyToken<AdminPayload>(
+    token,
+    ADMIN_MAX_AGE_SECONDS * 1000,
+  );
+  if (!payload || payload.role !== "admin") return null;
+  return payload;
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
