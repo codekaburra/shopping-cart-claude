@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PickedToggle } from "./PickedToggle";
@@ -126,7 +127,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
     <div className="space-y-6">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <a
+        <Link
           href="/admin/orders"
           className="inline-flex items-center gap-1.5 rounded-lg border border-metal-silver/30 px-4 py-2 text-sm text-text-secondary transition-colors hover:border-copper/50 hover:text-copper"
         >
@@ -134,7 +135,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
             <path d="M10 3L5 8l5 5" />
           </svg>
           返回訂單列表
-        </a>
+        </Link>
         {mode === "view" && (
           <div className="flex gap-2">
             <button
