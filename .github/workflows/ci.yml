@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   ci:
@@ -33,3 +34,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Deploy to EC2 after CI passes on main. Lives in this workflow (not a
+  # separate workflow_run file) because workflow_run only registers from the
+  # repo's default branch, which is not main.
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/shopping-cart-claude
+            bash deploy/deploy.sh
