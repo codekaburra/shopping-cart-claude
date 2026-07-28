@@ -2,7 +2,79 @@
 
 Planned work, in rough priority order. Nothing here is committed to a date.
 
-## 1. Payment layer (next up — after current production test round)
+## 1. Security & correctness (before taking payments)
+
+From the code review of 2026-07-28. These are ordered by severity, and the
+first one should land before the payment layer — payment adds amounts and
+payment status to the same order records that are currently exposed.
+
+### 1.1 Order page has no access control (critical)
+
+`src/app/(shop)/order/[id]/page.tsx` loads an order with `findUnique` and
+renders it with **no session check and no ownership check**. `src/proxy.ts`
+only gates `/checkout`, so the page is fully public: anyone holding an order
+ID — logged in or not — sees the customer's name, phone, delivery address,
+items, and total.
+
+Order IDs are cuids so they aren't guessable, but they travel in URLs, browser
+history, and chat messages. Textbook IDOR exposing PII.
+
+Fix: verify the session's `userId` matches `order.userId`, otherwise
+`notFound()`. Decide separately whether an unauthenticated "order confirmed"
+view is needed right after checkout — if so, gate it with a short-lived signed
+token rather than the raw ID.
+
+### 1.2 Admin order edit can modify other orders' items
+
+In `src/app/api/admin/orders/[id]/route.ts`, the `items` loop updates and
+deletes by item ID alone:
+
+```ts
+await prisma.orderItem.update({ where: { id: item.id } , ... })
+```
+
+`removeItems` a few lines above correctly scopes with `orderId: id`. Same
+route, two conventions — the unscoped one lets a stale or buggy client edit a
+different order's items. Admin-only, so this is data integrity rather than
+privilege escalation.
+
+### 1.3 No input validation on admin order edit
+
+Same route: `fulfillment` accepts any string (Prisma then throws on an invalid
+enum, surfacing as a 500), `DELIVERY` is accepted with no address, and
+`quantity` is never checked for being a positive integer. The public
+`/api/orders` validates all three — the admin path should not be weaker.
+
+### 1.4 No error handling in any API route
+
+None of the six routes has a `try`/`catch`. `/api/orders` and
+`/api/auth/invite` at least guard `request.json()` with `.catch(() => null)`;
+the four admin routes don't, so a malformed body is an unhandled throw.
+
+### 1.5 Order edit is not atomic
+
+The order update, `deleteMany`, and per-item updates are separate writes. A
+failure part-way leaves the order half-edited. Wrap in `prisma.$transaction`.
+
+### 1.6 Rate-limit the login endpoints
+
+`/api/auth/invite` and `/api/admin/auth` accept unlimited attempts — invite
+codes and the admin password can both be brute-forced. Cheapest fix is nginx
+`limit_req` in `deploy/nginx.conf`.
+
+### 1.7 Dashboard revenue reads the whole OrderItem table
+
+`src/app/admin/(dashboard)/page.tsx` pulls every order item into memory twice
+to sum revenue. Fine at current volume, linear growth from here. Also worth
+confirming: revenue currently counts `PENDING_PAYMENT` orders, i.e. money not
+yet received.
+
+### 1.8 `picked` is never reset
+
+Changing an item's quantity, or moving an order back a status, leaves items
+flagged as picked. Picking data silently goes stale.
+
+## 2. Payment layer (after the security fixes above)
 
 Accept online payment at checkout instead of manual payment verification.
 
@@ -53,7 +125,7 @@ Payment Layer
 | Decide currency & prices | Both | Current `formatPrice` shows raw `$` — confirm TWD/HKD and update display |
 | Refund / cancellation policy text | Both | Providers ask for it; also needed on the site footer |
 
-## 2. Checkout auth revamp (backlog)
+## 3. Checkout auth revamp (backlog)
 
 Replace the invite-code gate at checkout. Options discussed, undecided:
 
@@ -64,13 +136,12 @@ Replace the invite-code gate at checkout. Options discussed, undecided:
 
 Decision needed before design. Payment work does not block on this.
 
-## 3. Smaller items (backlog)
+## 4. Smaller items (backlog)
 
-- Rate-limit `/api/auth/invite` and `/api/admin/auth` (currently unlimited
-  brute-force attempts; nginx `limit_req` is the cheap fix)
 - Decide whether orders should decrement `ProductVariant.stock`
   (currently display-only — overselling is possible)
 - Split the three inline views in `admin/(dashboard)/orders/page.tsx`
   (556 lines) into separate components
 - Admin UI is zh-only while the shop is bilingual — decide if that is final
 - Fix default branch on GitHub to `main` (needs repo admin)
+- Prune merged remote branches (~20 stale ones)
