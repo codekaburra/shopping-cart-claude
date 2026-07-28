@@ -336,7 +336,7 @@ npm run import:catalog_mock
 | File | Purpose |
 |---|---|
 | `ecosystem.config.js` | PM2 config — app name, auto-restart, 512MB memory limit |
-| `deploy/nginx.conf` | Nginx reverse proxy (port 80 → 3000), WebSocket support |
+| `deploy/nginx.conf` | Nginx reverse proxy template (port 80 → 3000). `__DOMAIN__` is filled from `.env` by `setup.sh` |
 | `deploy/setup.sh` | First-time server setup: Node.js 22, PM2, Nginx |
 | `deploy/deploy.sh` | Deploy/redeploy: install deps, migrate DB, build, restart PM2 |
 
@@ -349,12 +349,36 @@ pm2 logs shop               # view app logs
 pm2 restart shop            # restart app
 ```
 
+### Custom Domain
+
+The domain is **not** stored in the repo — it lives in `.env` on the server.
+
+```bash
+# 1. Point an A record at the server's Elastic IP, then:
+echo 'DOMAIN="example.com www.example.com"' >> .env
+
+# 2. Regenerate the nginx config from the template and reload
+sudo bash deploy/setup.sh
+
+# 3. Confirm DNS resolves to this server before requesting a certificate
+dig +short example.com
+```
+
+With `DOMAIN` unset, nginx answers on any hostname (plain-IP access). Setting
+it is required before certbot will run, since certbot looks for a server block
+whose `server_name` matches. Plain-IP access keeps working either way — the
+block stays the port-80 default server.
+
 ### HTTPS (Optional)
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d example.com -d www.example.com
 ```
+
+Certbot edits the live config in `/etc/nginx/sites-available/shop` and renews
+automatically. Re-running `setup.sh` regenerates that file from the template
+and drops certbot's TLS edits — re-run certbot afterwards if that happens.
 
 ---
 
