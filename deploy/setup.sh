@@ -26,13 +26,23 @@ echo "=== 5. Configure Nginx ==="
 # keeps the block as the port-80 default server, so plain-IP access still works.
 DOMAIN="$(sed -n 's/^DOMAIN=//p' "$APP_DIR/.env" 2>/dev/null | head -1 | tr -d '"' | xargs || true)"
 if [ -z "$DOMAIN" ]; then
-  DOMAIN="_"
+  SERVER_NAMES="_"
   echo "No DOMAIN in .env — nginx will accept any hostname."
   echo "For HTTPS, set DOMAIN in .env and re-run this script (certbot needs it)."
 else
-  echo "Using DOMAIN from .env: $DOMAIN"
+  SERVER_NAMES="$DOMAIN"
+  # Convenience: given a bare apex domain, also answer for its www form, so
+  # .env only needs `DOMAIN="example.com"`. Subdomains are left alone, since
+  # www.shop.example.com rarely has a DNS record — and asking certbot for a
+  # name that does not resolve fails the whole certificate request. Writing
+  # several names explicitly disables this and is used verbatim.
+  if [ "$(echo "$DOMAIN" | wc -w)" -eq 1 ] &&
+    [ "$(echo "$DOMAIN" | awk -F. '{print NF}')" -eq 2 ]; then
+    SERVER_NAMES="$DOMAIN www.$DOMAIN"
+  fi
+  echo "server_name: $SERVER_NAMES"
 fi
-sed "s|__DOMAIN__|$DOMAIN|g" "$APP_DIR/deploy/nginx.conf" > /etc/nginx/sites-available/shop
+sed "s|__DOMAIN__|$SERVER_NAMES|g" "$APP_DIR/deploy/nginx.conf" > /etc/nginx/sites-available/shop
 ln -sf /etc/nginx/sites-available/shop /etc/nginx/sites-enabled/shop
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
@@ -44,3 +54,11 @@ pm2 startup systemd -u ubuntu --hp /home/ubuntu
 echo ""
 echo "Setup complete! Now run (as the ubuntu user, not root):"
 echo "  bash deploy/deploy.sh"
+
+if [ "$SERVER_NAMES" != "_" ]; then
+  echo ""
+  echo "For HTTPS — once 'dig +short ${SERVER_NAMES%% *}' returns this server's IP:"
+  echo -n "  sudo certbot --nginx"
+  for d in $SERVER_NAMES; do echo -n " -d $d"; done
+  echo ""
+fi

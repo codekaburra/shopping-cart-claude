@@ -354,8 +354,8 @@ pm2 restart shop            # restart app
 The domain is **not** stored in the repo — it lives in `.env` on the server.
 
 ```bash
-# 1. Point an A record at the server's Elastic IP, then:
-echo 'DOMAIN="example.com www.example.com"' >> .env
+# 1. Point an A record at the server's Elastic IP, then write the domain once:
+echo 'DOMAIN="example.com"' >> .env
 
 # 2. Regenerate the nginx config from the template and reload
 sudo bash deploy/setup.sh
@@ -363,6 +363,18 @@ sudo bash deploy/setup.sh
 # 3. Confirm DNS resolves to this server before requesting a certificate
 dig +short example.com
 ```
+
+`setup.sh` prints the resulting `server_name` and the matching certbot command.
+
+| `DOMAIN` in `.env` | `server_name` used |
+|---|---|
+| `example.com` | `example.com www.example.com` — www added automatically |
+| `shop.example.com` | `shop.example.com` — subdomains used as-is |
+| `example.com api.example.com` | used verbatim; several names disable the www rule |
+| unset | `_` — answers on any hostname |
+
+The www form is only added to bare apex domains, because asking certbot for a
+name with no DNS record fails the whole certificate request.
 
 With `DOMAIN` unset, nginx answers on any hostname (plain-IP access). Setting
 it is required before certbot will run, since certbot looks for a server block
