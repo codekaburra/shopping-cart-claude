@@ -263,6 +263,9 @@ ADMIN_PASSWORD="your-password"
 | `SESSION_SECRET` | Yes | HMAC key for signing admin session cookies. Prevents cookie forgery |
 | `ADMIN_USERNAME` | Yes | Admin login username |
 | `ADMIN_PASSWORD` | Yes | Admin login password |
+| `DOMAIN` | No | Production only. Domain nginx answers for — see [Custom Domain](#custom-domain). Unset means any hostname |
+
+Copy `.env.example` as a starting point.
 
 Environment variables are loaded via `dotenv` in `prisma.config.ts`.
 
@@ -278,7 +281,9 @@ npm run dev             # Start local development server
 npm run build           # Build for production
 npm run start           # Start production server
 npm run lint            # Run ESLint
+npm test                # Run unit tests (Vitest)
 npm run import:catalog  # Import catalog data into SQLite
+npm run import:catalog_mock  # Catalog + demo users + 1000 mock orders
 ```
 
 Useful one-off commands:
@@ -421,23 +426,42 @@ src/
 │   └── ...                  # Shared components (CartDrawer, ShopClient, etc.)
 ├── context/                 # CartContext (client-side cart state)
 ├── i18n/                    # Locale dictionaries (zh-Hant, en) + helpers
-├── lib/                     # Utilities (db, session, admin-session)
+├── lib/                     # Utilities (db, token, session, admin-session)
 ├── proxy.ts                 # Route protection (checkout only)
-└── generated/prisma/        # Generated Prisma client
+└── generated/prisma/        # Generated Prisma client (gitignored)
 
 data/products/               # Static catalog source + English translations
 prisma/                      # Schema, migrations, seed
 scripts/                     # import-catalog.ts, mock-orders.ts
 deploy/                      # EC2 deployment scripts
+docs/                        # ROADMAP.md
 screenshots/                 # README image assets
 ```
 
-## CI
+Unit tests live beside the code they cover (`src/lib/token.test.ts`,
+`src/i18n/index.test.ts`) and run with `npm test`.
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`:
+## CI / CD
+
+`.github/workflows/ci.yml` holds both jobs.
+
+**`ci`** — runs on pushes and PRs to `main` and `develop`:
 
 1. `npm ci` — install dependencies
 2. `npx prisma generate` — generate Prisma client
 3. `npm run lint` — ESLint
 4. `npx tsc --noEmit` — type check
-5. `npm run build` — production build
+5. `npm test` — unit tests
+6. `npm run build` — production build
+
+**`deploy`** — `needs: ci`, and only on pushes to `main`. SSHes into EC2 and
+runs `deploy/deploy.sh`, so a green build on `main` ships automatically. It
+needs two repository secrets:
+
+| Secret | Value |
+|---|---|
+| `EC2_HOST` | server public IP |
+| `EC2_SSH_KEY` | contents of the `.pem` private key |
+
+Deploy lives in this workflow rather than a separate `workflow_run` one
+because `workflow_run` only registers from the repository's default branch.
