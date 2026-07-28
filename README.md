@@ -263,6 +263,9 @@ ADMIN_PASSWORD="your-password"
 | `SESSION_SECRET` | Yes | HMAC key for signing admin session cookies. Prevents cookie forgery |
 | `ADMIN_USERNAME` | Yes | Admin login username |
 | `ADMIN_PASSWORD` | Yes | Admin login password |
+| `DOMAIN` | No | Production only. Domain nginx answers for — see [Custom Domain](#custom-domain). Unset means any hostname |
+
+Copy `.env.example` as a starting point.
 
 Environment variables are loaded via `dotenv` in `prisma.config.ts`.
 
@@ -278,7 +281,9 @@ npm run dev             # Start local development server
 npm run build           # Build for production
 npm run start           # Start production server
 npm run lint            # Run ESLint
+npm test                # Run unit tests (Vitest)
 npm run import:catalog  # Import catalog data into SQLite
+npm run import:catalog_mock  # Catalog + demo users + 1000 mock orders
 ```
 
 Useful one-off commands:
@@ -336,7 +341,7 @@ npm run import:catalog_mock
 | File | Purpose |
 |---|---|
 | `ecosystem.config.js` | PM2 config — app name, auto-restart, 512MB memory limit |
-| `deploy/nginx.conf` | Nginx reverse proxy (port 80 → 3000), WebSocket support |
+| `deploy/nginx.conf` | Nginx reverse proxy template (port 80 → 3000). `__DOMAIN__` is filled from `.env` by `setup.sh` |
 | `deploy/setup.sh` | First-time server setup: Node.js 22, PM2, Nginx |
 | `deploy/deploy.sh` | Deploy/redeploy: install deps, migrate DB, build, restart PM2 |
 
@@ -349,12 +354,48 @@ pm2 logs shop               # view app logs
 pm2 restart shop            # restart app
 ```
 
+### Custom Domain
+
+The domain is **not** stored in the repo — it lives in `.env` on the server.
+
+```bash
+# 1. Point an A record at the server's Elastic IP, then write the domain once:
+echo 'DOMAIN="example.com"' >> .env
+
+# 2. Regenerate the nginx config from the template and reload
+sudo bash deploy/setup.sh
+
+# 3. Confirm DNS resolves to this server before requesting a certificate
+dig +short example.com
+```
+
+`setup.sh` prints the resulting `server_name` and the matching certbot command.
+
+| `DOMAIN` in `.env` | `server_name` used |
+|---|---|
+| `example.com` | `example.com www.example.com` — www added automatically |
+| `shop.example.com` | `shop.example.com` — subdomains used as-is |
+| `example.com api.example.com` | used verbatim; several names disable the www rule |
+| unset | `_` — answers on any hostname |
+
+The www form is only added to bare apex domains, because asking certbot for a
+name with no DNS record fails the whole certificate request.
+
+With `DOMAIN` unset, nginx answers on any hostname (plain-IP access). Setting
+it is required before certbot will run, since certbot looks for a server block
+whose `server_name` matches. Plain-IP access keeps working either way — the
+block stays the port-80 default server.
+
 ### HTTPS (Optional)
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d example.com -d www.example.com
 ```
+
+Certbot edits the live config in `/etc/nginx/sites-available/shop` and renews
+automatically. Re-running `setup.sh` regenerates that file from the template
+and drops certbot's TLS edits — re-run certbot afterwards if that happens.
 
 ---
 
@@ -385,23 +426,42 @@ src/
 │   └── ...                  # Shared components (CartDrawer, ShopClient, etc.)
 ├── context/                 # CartContext (client-side cart state)
 ├── i18n/                    # Locale dictionaries (zh-Hant, en) + helpers
-├── lib/                     # Utilities (db, session, admin-session)
+├── lib/                     # Utilities (db, token, session, admin-session)
 ├── proxy.ts                 # Route protection (checkout only)
-└── generated/prisma/        # Generated Prisma client
+└── generated/prisma/        # Generated Prisma client (gitignored)
 
 data/products/               # Static catalog source + English translations
 prisma/                      # Schema, migrations, seed
 scripts/                     # import-catalog.ts, mock-orders.ts
 deploy/                      # EC2 deployment scripts
+docs/                        # ROADMAP.md
 screenshots/                 # README image assets
 ```
 
-## CI
+Unit tests live beside the code they cover (`src/lib/token.test.ts`,
+`src/i18n/index.test.ts`) and run with `npm test`.
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes and PRs to `main`:
+## CI / CD
+
+`.github/workflows/ci.yml` holds both jobs.
+
+**`ci`** — runs on pushes and PRs to `main` and `develop`:
 
 1. `npm ci` — install dependencies
 2. `npx prisma generate` — generate Prisma client
 3. `npm run lint` — ESLint
 4. `npx tsc --noEmit` — type check
-5. `npm run build` — production build
+5. `npm test` — unit tests
+6. `npm run build` — production build
+
+**`deploy`** — `needs: ci`, and only on pushes to `main`. SSHes into EC2 and
+runs `deploy/deploy.sh`, so a green build on `main` ships automatically. It
+needs two repository secrets:
+
+| Secret | Value |
+|---|---|
+| `EC2_HOST` | server public IP |
+| `EC2_SSH_KEY` | contents of the `.pem` private key |
+
+Deploy lives in this workflow rather than a separate `workflow_run` one
+because `workflow_run` only registers from the repository's default branch.
