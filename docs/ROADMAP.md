@@ -8,21 +8,15 @@ From the code review of 2026-07-28. These are ordered by severity, and the
 first one should land before the payment layer — payment adds amounts and
 payment status to the same order records that are currently exposed.
 
-### 1.1 Order page has no access control (critical)
+### 1.1 Order page has no access control (critical) — FIXED
 
-`src/app/(shop)/order/[id]/page.tsx` loads an order with `findUnique` and
-renders it with **no session check and no ownership check**. `src/proxy.ts`
-only gates `/checkout`, so the page is fully public: anyone holding an order
-ID — logged in or not — sees the customer's name, phone, delivery address,
-items, and total.
+`src/app/(shop)/order/[id]/page.tsx` loaded an order with `findUnique` and no
+session or ownership check, so anyone holding an order ID could read the
+customer's name, phone and delivery address.
 
-Order IDs are cuids so they aren't guessable, but they travel in URLs, browser
-history, and chat messages. Textbook IDOR exposing PII.
-
-Fix: verify the session's `userId` matches `order.userId`, otherwise
-`notFound()`. Decide separately whether an unauthenticated "order confirmed"
-view is needed right after checkout — if so, gate it with a short-lived signed
-token rather than the raw ID.
+Fixed: the page now requires a session (redirecting to `/login?next=…`
+otherwise) and scopes the lookup with `findFirst({ where: { id, userId } })`,
+so another customer's order is simply not found.
 
 ### 1.2 Admin order edit can modify other orders' items
 
