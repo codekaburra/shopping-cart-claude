@@ -43,10 +43,24 @@ function formatPrice(cents: number) {
 
 type Mode = "view" | "edit" | "picking";
 
+// Error codes returned by PATCH /api/admin/orders/[id].
+const SAVE_ERRORS: Record<string, string> = {
+  NAME_REQUIRED: "請填寫姓名",
+  PHONE_REQUIRED: "請填寫電話",
+  ADDRESS_REQUIRED: "送貨訂單必須填寫地址",
+  FULFILLMENT_INVALID: "取貨方式無效",
+  INVALID_ITEM: "商品資料無效",
+  ITEM_NOT_IN_ORDER: "商品不屬於此訂單，請重新整理",
+  NOT_FOUND: "找不到此訂單",
+  UNAUTHORIZED: "登入已逾時，請重新登入",
+  SERVER_ERROR: "伺服器錯誤，請稍後再試",
+};
+
 export function OrderDetailClient({ order }: { order: OrderData }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("view");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const editing = mode === "edit";
   const picking = mode === "picking";
@@ -87,6 +101,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
 
   async function handleSave() {
     setSaving(true);
+    setSaveError(null);
     try {
       const changedItems = items
         .filter((i) => {
@@ -111,7 +126,14 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
       if (res.ok) {
         setMode("view");
         router.refresh();
+        return;
       }
+      const { error } = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      setSaveError(SAVE_ERRORS[error ?? ""] ?? "儲存失敗，請再試一次");
+    } catch {
+      setSaveError("儲存失敗，請檢查網路連線");
     } finally {
       setSaving(false);
     }
@@ -183,6 +205,15 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
           </div>
         )}
       </div>
+
+      {saveError && (
+        <p
+          role="alert"
+          className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+        >
+          {saveError}
+        </p>
+      )}
 
       {/* Order header */}
       <div className="rounded-xl border border-metal-silver/20 bg-concrete/10 p-5">
