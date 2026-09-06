@@ -120,20 +120,31 @@ export async function PATCH(
         });
       }
 
+      // Read the order's own items once, so membership is checked against the
+      // order rather than trusting the ids the client sent, and so a quantity
+      // change can be told apart from a no-op resend.
+      const ownItems = await tx.orderItem.findMany({
+        where: { orderId: id },
+        select: { id: true, quantity: true },
+      });
+      const quantityById = new Map(ownItems.map((i) => [i.id, i.quantity]));
+
       for (const item of itemPatches) {
-        // Scope every write by orderId so a stale or malicious client cannot
-        // reach into a different order's items. updateMany/deleteMany accept
-        // a compound filter where update/delete would only take the id.
-        const { count } =
-          item.quantity <= 0
-            ? await tx.orderItem.deleteMany({
-                where: { id: item.id, orderId: id },
-              })
-            : await tx.orderItem.updateMany({
-                where: { id: item.id, orderId: id },
-                data: { quantity: item.quantity },
-              });
-        if (count === 0) throw new PatchError("ITEM_NOT_IN_ORDER", 400);
+        const currentQuantity = quantityById.get(item.id);
+        if (currentQuantity === undefined) {
+          throw new PatchError("ITEM_NOT_IN_ORDER", 400);
+        }
+        if (item.quantity <= 0) {
+          await tx.orderItem.delete({ where: { id: item.id } });
+          continue;
+        }
+        if (item.quantity === currentQuantity) continue;
+        await tx.orderItem.update({
+          where: { id: item.id },
+          // A picked item was counted off the shelf at the old quantity, so
+          // changing it invalidates that check — the picker has to redo it.
+          data: { quantity: item.quantity, picked: false },
+        });
       }
 
       return { id: order.id };
