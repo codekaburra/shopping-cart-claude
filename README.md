@@ -386,6 +386,21 @@ it is required before certbot will run, since certbot looks for a server block
 whose `server_name` matches. Plain-IP access keeps working either way — the
 block stays the port-80 default server.
 
+### Applying nginx changes
+
+`deploy.sh` runs as `ubuntu` and never touches `/etc/nginx`, so a change to
+`deploy/nginx.conf` (such as the login rate limit) is **not** picked up by a
+normal deploy or by CI. Apply it by hand:
+
+```bash
+sudo bash deploy/setup.sh                 # regenerates the site from the template
+sudo certbot --nginx -d example.com       # choose "1: Attempt to reinstall"
+sudo ss -tlnp | grep :443                 # confirm HTTPS is back
+```
+
+Regenerating the file drops certbot's HTTPS block, which is why certbot runs
+again; option 1 reuses the existing certificate and costs no rate limit.
+
 ### HTTPS (Optional)
 
 ```bash

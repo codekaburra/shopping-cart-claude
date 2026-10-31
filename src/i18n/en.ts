@@ -12,6 +12,7 @@ export const dictionary = {
   inviteCodePlaceholder: "Invite code",
   loginButton: "Enter shop",
   loginErrorInvalid: "Invalid or disabled invite code, please try again",
+  loginErrorRateLimited: "Too many attempts. Please wait a minute and try again",
   loginErrorEmpty: "Please enter an invite code",
 
   // Shop

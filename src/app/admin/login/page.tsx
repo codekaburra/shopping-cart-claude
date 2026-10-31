@@ -25,7 +25,12 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
-        setError("帳號或密碼錯誤");
+        // 429 is the nginx rate limit, not wrong credentials.
+        setError(
+          res.status === 429
+            ? "嘗試次數過多，請等一分鐘後再試"
+            : "帳號或密碼錯誤",
+        );
         return;
       }
       router.replace("/admin");

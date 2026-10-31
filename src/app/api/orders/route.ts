@@ -12,6 +12,10 @@ type OrderRequest = {
   address?: string;
 };
 
+// Per-line cap. Without it a client can submit 3,000,000,000 of an item and
+// the order total overflows anything meaningful.
+const MAX_QUANTITY = 999;
+
 export async function POST(request: Request) {
   // Require a valid session and resolve the ordering user by UUID.
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -53,14 +57,16 @@ export async function POST(request: Request) {
     if (
       !item.variantId ||
       !Number.isInteger(item.quantity) ||
-      item.quantity <= 0
+      item.quantity <= 0 ||
+      item.quantity > MAX_QUANTITY
     ) {
       return NextResponse.json({ error: "INVALID_ITEM" }, { status: 400 });
     }
-    quantityByVariant.set(
-      item.variantId,
-      (quantityByVariant.get(item.variantId) ?? 0) + item.quantity,
-    );
+    const total = (quantityByVariant.get(item.variantId) ?? 0) + item.quantity;
+    if (total > MAX_QUANTITY) {
+      return NextResponse.json({ error: "INVALID_ITEM" }, { status: 400 });
+    }
+    quantityByVariant.set(item.variantId, total);
   }
 
   // Trust the database for prices, never the client.

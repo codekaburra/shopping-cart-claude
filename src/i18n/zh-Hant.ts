@@ -14,6 +14,7 @@ export const dictionary = {
   inviteCodePlaceholder: "邀請碼",
   loginButton: "進入商店",
   loginErrorInvalid: "邀請碼無效或已停用，請重試",
+  loginErrorRateLimited: "嘗試次數過多，請等一分鐘後再試",
   loginErrorEmpty: "請輸入邀請碼",
 
   // Shop

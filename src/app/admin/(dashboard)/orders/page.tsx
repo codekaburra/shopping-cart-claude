@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { OrderStatus } from "@/generated/prisma/enums";
 import { formatPrice } from "@/i18n";
 import { OrderStatusControl } from "@/components/admin/OrderStatusControl";
 import { OrderPageTabs } from "@/components/admin/OrderPageTabs";
@@ -304,10 +305,10 @@ function StatCard({
 }
 
 async function OrderListView({ filterStatus }: { filterStatus?: string }) {
-  const validStatuses = ["PENDING_PAYMENT", "PENDING_VERIFICATION", "PENDING_SHIPMENT", "PENDING_PICKUP", "COMPLETED"] as const;
-  type Status = (typeof validStatuses)[number];
-  const where = filterStatus && (validStatuses as readonly string[]).includes(filterStatus)
-    ? { status: filterStatus as Status }
+  // From the schema enum, matching the status API, so the two cannot drift.
+  const validStatuses: string[] = Object.values(OrderStatus);
+  const where = filterStatus && validStatuses.includes(filterStatus)
+    ? { status: filterStatus as OrderStatus }
     : {};
 
   const orders = await prisma.order.findMany({
@@ -348,8 +349,10 @@ async function OrderListView({ filterStatus }: { filterStatus?: string }) {
     ),
   }));
 
-  const statuses = ["ALL", "PENDING_PAYMENT", "PENDING_VERIFICATION", "PENDING_SHIPMENT", "PENDING_PICKUP", "COMPLETED"] as const;
-  const statusLabels: Record<string, string> = {
+  const statuses = ["ALL", ...Object.values(OrderStatus)] as const;
+  // Keyed by the enum, so adding a status without a label fails to compile
+  // instead of rendering a raw code in the filter tabs.
+  const statusLabels: Record<OrderStatus | "ALL", string> = {
     ALL: "全部",
     PENDING_PAYMENT: "待付款",
     PENDING_VERIFICATION: "待核實收款",
