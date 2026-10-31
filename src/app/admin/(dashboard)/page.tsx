@@ -29,23 +29,55 @@ export default async function AdminDashboardPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [totalOrders, pendingOrders, todayOrders, recentRawOrders] =
-    await Promise.all([
-      prisma.order.count(),
-      prisma.order.count({ where: { status: "PENDING_PAYMENT" } }),
-      prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
-      prisma.order.findMany({
-        include: { items: true },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-    ]);
+  // Every query here is independent, so they run together rather than as
+  // one round-trip after another.
+  const [
+    totalOrders,
+    pendingOrders,
+    todayOrders,
+    recentRawOrders,
+    [revenueRow],
+    chartOrders,
+    categoryRows,
+  ] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "PENDING_PAYMENT" } }),
+    prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
+    prisma.order.findMany({
+      include: { items: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    // Summed in SQL rather than by loading every order item into memory —
+    // this table grows with every order placed.
+    prisma.$queryRaw<{ total: number | bigint | null }[]>`
+      SELECT SUM("unitPriceCents" * "quantity") AS total FROM "OrderItem"
+    `,
+    prisma.order.findMany({
+      where: { createdAt: { gte: sixMonthsAgo } },
+      select: {
+        createdAt: true,
+        items: { select: { unitPriceCents: true, quantity: true } },
+      },
+    }),
+    // Category breakdown, grouped in SQL for the same reason as revenue.
+    // COALESCE mirrors the previous JS fallback chain: prefer the parent
+    // category's label, else the leaf's, else "未分類". Category.name is
+    // non-nullable, so a present parent always resolves before the leaf.
+    prisma.$queryRaw<{ label: string; value: number | bigint }[]>`
+      SELECT
+        COALESCE(parent."displayName", parent."name",
+                 cat."displayName", cat."name", '未分類') AS label,
+        SUM(oi."unitPriceCents" * oi."quantity") AS value
+      FROM "OrderItem" oi
+      JOIN "ProductVariant" pv ON pv."id" = oi."variantId"
+      JOIN "Product" p ON p."id" = pv."productId"
+      LEFT JOIN "Category" cat ON cat."id" = p."categoryId"
+      LEFT JOIN "Category" parent ON parent."id" = cat."parentId"
+      GROUP BY label
+    `,
+  ]);
 
-  // Summed in SQL rather than by loading every order item into memory —
-  // this table grows with every order placed.
-  const [revenueRow] = await prisma.$queryRaw<{ total: number | bigint | null }[]>`
-    SELECT SUM("unitPriceCents" * "quantity") AS total FROM "OrderItem"
-  `;
   const revenueCents = Number(revenueRow?.total ?? 0);
 
   const recentOrders = recentRawOrders.map((o) => ({
@@ -60,14 +92,6 @@ export default async function AdminDashboardPage() {
   }));
 
   // --- Chart data ---
-
-  const chartOrders = await prisma.order.findMany({
-    where: { createdAt: { gte: sixMonthsAgo } },
-    select: {
-      createdAt: true,
-      items: { select: { unitPriceCents: true, quantity: true } },
-    },
-  });
 
   // Daily (last 30 days)
   const dailyMap = new Map<string, { revenue: number; orders: number }>();
@@ -113,25 +137,6 @@ export default async function AdminDashboardPage() {
   const monthlyData: MonthlyData[] = Array.from(monthlyMap.entries()).map(
     ([month, v]) => ({ month, ...v }),
   );
-
-  // Category breakdown. Grouped in SQL for the same reason as revenue above.
-  // COALESCE mirrors the previous JS fallback chain: prefer the parent
-  // category's label, else the leaf's, else "未分類". Category.name is
-  // non-nullable, so a present parent always resolves before reaching the leaf.
-  const categoryRows = await prisma.$queryRaw<
-    { label: string; value: number | bigint }[]
-  >`
-    SELECT
-      COALESCE(parent."displayName", parent."name",
-               cat."displayName", cat."name", '未分類') AS label,
-      SUM(oi."unitPriceCents" * oi."quantity") AS value
-    FROM "OrderItem" oi
-    JOIN "ProductVariant" pv ON pv."id" = oi."variantId"
-    JOIN "Product" p ON p."id" = pv."productId"
-    LEFT JOIN "Category" cat ON cat."id" = p."categoryId"
-    LEFT JOIN "Category" parent ON parent."id" = cat."parentId"
-    GROUP BY label
-  `;
 
   const categoryData: CategoryData[] = categoryRows
     .map((row) => ({ name: row.label, value: Number(row.value) }))
