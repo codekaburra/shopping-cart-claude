@@ -45,6 +45,20 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# `npm ci` deletes node_modules before reinstalling, and on a small instance
+# the kernel OOM-kills it part-way (exit 137) while the app is also running.
+# That leaves production with no node_modules: the old process survives only
+# until its next restart. Refuse to start unless RAM + swap can carry the
+# install and build, so a failed deploy leaves the running site intact.
+MIN_MEMORY_MB=2048
+AVAILABLE_MB=$(free -m | awk '/^Mem:/{m=$2} /^Swap:/{s=$2} END{print m+s}')
+if [ "$AVAILABLE_MB" -lt "$MIN_MEMORY_MB" ]; then
+  echo "ERROR: RAM + swap is ${AVAILABLE_MB} MB; deploy needs at least ${MIN_MEMORY_MB} MB."
+  echo "node_modules and the running build were left untouched. Add swap"
+  echo "(README, 'Deploy needs swap'), then rerun."
+  exit 1
+fi
+
 echo "=== Installing dependencies ==="
 npm ci
 

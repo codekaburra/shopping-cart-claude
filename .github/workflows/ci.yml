@@ -40,6 +40,13 @@ jobs:
   # repo's default branch, which is not main.
   deploy:
     needs: ci
+    # Merging several PRs in a row starts several deploys. Without this they
+    # ran deploy.sh on the box at the same time — two `npm ci`s in one
+    # directory on a small instance. Queue them instead; never cancel one
+    # mid-way, since a half-finished `npm ci` leaves node_modules deleted.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
