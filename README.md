@@ -386,6 +386,22 @@ it is required before certbot will run, since certbot looks for a server block
 whose `server_name` matches. Plain-IP access keeps working either way — the
 block stays the port-80 default server.
 
+### Deploy needs swap
+
+`deploy.sh` runs `npm ci` and `next build` on the server while the app keeps
+running. On a 1 GB instance that is more than RAM holds, and the kernel kills
+`npm ci` part-way (exit 137) — after it has already deleted `node_modules`. The
+script now refuses to start below 2 GB of RAM + swap, so add swap once:
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # survive reboots
+free -m                                                       # Swap: ~2047
+```
+
 ### Applying nginx changes
 
 `deploy.sh` runs as `ubuntu` and never touches `/etc/nginx`, so a change to
