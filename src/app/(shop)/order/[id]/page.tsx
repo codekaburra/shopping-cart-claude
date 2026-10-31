@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatPrice, t as translate, type MessageKey } from "@/i18n";
 import { getLocale } from "@/i18n/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +16,19 @@ export default async function OrderPage({
   const { id } = await params;
   const locale = await getLocale();
   const t = (key: MessageKey) => translate(key, locale);
-  const order = await prisma.order.findUnique({
-    where: { id },
+
+  // Orders carry the customer's name, phone and delivery address, so a valid
+  // session is required — an order id alone must not be enough to read one.
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const session = await verifySessionToken(token);
+  if (!session) {
+    redirect(`/login?next=/order/${id}`);
+  }
+
+  // Scoping the lookup by userId means someone else's order simply is not
+  // found, rather than being fetched and then rejected.
+  const order = await prisma.order.findFirst({
+    where: { id, userId: session.userId },
     include: { items: true },
   });
 
