@@ -19,8 +19,6 @@ const PHONES = [
   "0967890123", "0978901234", "0989012345", "0911223344", "0922334455",
 ];
 
-const STATUSES = ["PENDING", "PAID", "COMPLETED"] as const;
-
 function randomDate(monthsBack: number): Date {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);

@@ -143,8 +143,6 @@ Decision needed before design. Payment work does not block on this.
 
 - Decide whether orders should decrement `ProductVariant.stock`
   (currently display-only — overselling is possible)
-- Split the three inline views in `admin/(dashboard)/orders/page.tsx`
-  (556 lines) into separate components
 - Admin UI is zh-only while the shop is bilingual — decide if that is final
 - Fix default branch on GitHub to `main` (needs repo admin)
 - Prune merged remote branches (~20 stale ones)

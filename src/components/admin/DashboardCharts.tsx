@@ -24,7 +24,6 @@ const COPPER = "#c97b4a";
 const COPPER_LIGHT = "#e8b88a";
 const METAL_GOLD = "#d4af88";
 const METAL_SILVER = "#a8b0b8";
-const CONCRETE = "#3f3f3f";
 
 const PIE_COLORS = [COPPER, COPPER_LIGHT, METAL_GOLD, METAL_SILVER, "#8b6f5e", "#6b8f8e"];
 
