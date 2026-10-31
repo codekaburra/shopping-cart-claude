@@ -49,7 +49,8 @@ const SAVE_ERRORS: Record<string, string> = {
   PHONE_REQUIRED: "請填寫電話",
   ADDRESS_REQUIRED: "送貨訂單必須填寫地址",
   FULFILLMENT_INVALID: "取貨方式無效",
-  INVALID_ITEM: "商品資料無效",
+  INVALID_ITEM: "商品資料無效（數量需介於 1 至 999）",
+  INVALID_NOTE: "備註格式無效",
   ITEM_NOT_IN_ORDER: "商品不屬於此訂單，請重新整理",
   NOT_FOUND: "找不到此訂單",
   UNAUTHORIZED: "登入已逾時，請重新登入",
@@ -75,6 +76,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
 
   function startEdit() {
     setMode("edit");
+    setSaveError(null);
     setContactName(order.contactName);
     setContactPhone(order.contactPhone);
     setNote(order.note ?? "");
@@ -86,6 +88,7 @@ export function OrderDetailClient({ order }: { order: OrderData }) {
 
   function exitMode() {
     setMode("view");
+    setSaveError(null);
   }
 
   function updateQty(id: string, qty: number) {

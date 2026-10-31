@@ -41,13 +41,12 @@ export default async function AdminDashboardPage() {
       }),
     ]);
 
-  const allItems = await prisma.orderItem.findMany({
-    select: { unitPriceCents: true, quantity: true },
-  });
-  const revenueCents = allItems.reduce(
-    (sum, item) => sum + item.unitPriceCents * item.quantity,
-    0,
-  );
+  // Summed in SQL rather than by loading every order item into memory —
+  // this table grows with every order placed.
+  const [revenueRow] = await prisma.$queryRaw<{ total: number | bigint | null }[]>`
+    SELECT SUM("unitPriceCents" * "quantity") AS total FROM "OrderItem"
+  `;
+  const revenueCents = Number(revenueRow?.total ?? 0);
 
   const recentOrders = recentRawOrders.map((o) => ({
     id: o.id,
@@ -115,40 +114,27 @@ export default async function AdminDashboardPage() {
     ([month, v]) => ({ month, ...v }),
   );
 
-  // Category breakdown
-  const categoryItems = await prisma.orderItem.findMany({
-    select: {
-      unitPriceCents: true,
-      quantity: true,
-      variant: {
-        select: {
-          product: {
-            select: {
-              category: {
-                select: {
-                  displayName: true,
-                  name: true,
-                  parent: { select: { displayName: true, name: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-  const catMap = new Map<string, number>();
-  for (const item of categoryItems) {
-    const cat = item.variant.product.category;
-    const topCat = cat?.parent ?? cat;
-    const label = topCat?.displayName ?? topCat?.name ?? "未分類";
-    catMap.set(
-      label,
-      (catMap.get(label) ?? 0) + item.unitPriceCents * item.quantity,
-    );
-  }
-  const categoryData: CategoryData[] = Array.from(catMap.entries())
-    .map(([name, value]) => ({ name, value }))
+  // Category breakdown. Grouped in SQL for the same reason as revenue above.
+  // COALESCE mirrors the previous JS fallback chain: prefer the parent
+  // category's label, else the leaf's, else "未分類". Category.name is
+  // non-nullable, so a present parent always resolves before reaching the leaf.
+  const categoryRows = await prisma.$queryRaw<
+    { label: string; value: number | bigint }[]
+  >`
+    SELECT
+      COALESCE(parent."displayName", parent."name",
+               cat."displayName", cat."name", '未分類') AS label,
+      SUM(oi."unitPriceCents" * oi."quantity") AS value
+    FROM "OrderItem" oi
+    JOIN "ProductVariant" pv ON pv."id" = oi."variantId"
+    JOIN "Product" p ON p."id" = pv."productId"
+    LEFT JOIN "Category" cat ON cat."id" = p."categoryId"
+    LEFT JOIN "Category" parent ON parent."id" = cat."parentId"
+    GROUP BY label
+  `;
+
+  const categoryData: CategoryData[] = categoryRows
+    .map((row) => ({ name: row.label, value: Number(row.value) }))
     .sort((a, b) => b.value - a.value);
 
   return (

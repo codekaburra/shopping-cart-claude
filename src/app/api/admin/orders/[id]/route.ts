@@ -3,17 +3,14 @@ import { prisma } from "@/lib/db";
 import { isAdminAuthenticated } from "@/lib/admin-session";
 import { Fulfillment } from "@/generated/prisma/enums";
 
-type ItemPatch = { id?: string; quantity?: number };
+// Everything in the body is untrusted until checked: a field typed `string`
+// here would let `{ "contactName": null }` reach `.trim()` and throw.
+type Body = Record<string, unknown>;
 
-type Body = {
-  contactName?: string;
-  contactPhone?: string;
-  note?: string | null;
-  fulfillment?: string;
-  address?: string | null;
-  items?: ItemPatch[];
-  removeItems?: string[];
-};
+// Bounds on a line quantity. Removing an item goes through `removeItems`, so
+// zero and negatives are rejected rather than treated as an implicit delete.
+const MIN_QUANTITY = 1;
+const MAX_QUANTITY = 999;
 
 const FULFILLMENTS: string[] = Object.values(Fulfillment);
 
@@ -55,38 +52,72 @@ export async function PATCH(
   } = {};
 
   if (body.contactName !== undefined) {
+    if (typeof body.contactName !== "string") return bad("NAME_REQUIRED");
     const name = body.contactName.trim();
     if (!name) return bad("NAME_REQUIRED");
     patch.contactName = name;
   }
   if (body.contactPhone !== undefined) {
+    if (typeof body.contactPhone !== "string") return bad("PHONE_REQUIRED");
     const phone = body.contactPhone.trim();
     if (!phone) return bad("PHONE_REQUIRED");
     patch.contactPhone = phone;
   }
   if (body.note !== undefined) {
+    if (body.note !== null && typeof body.note !== "string") {
+      return bad("INVALID_NOTE");
+    }
     patch.note = body.note?.trim() || null;
   }
   if (body.fulfillment !== undefined) {
-    if (!FULFILLMENTS.includes(body.fulfillment)) {
+    if (
+      typeof body.fulfillment !== "string" ||
+      !FULFILLMENTS.includes(body.fulfillment)
+    ) {
       return bad("FULFILLMENT_INVALID");
     }
     patch.fulfillment = body.fulfillment as Fulfillment;
   }
   if (body.address !== undefined) {
+    if (body.address !== null && typeof body.address !== "string") {
+      return bad("ADDRESS_REQUIRED");
+    }
     patch.address = body.address?.trim() || null;
   }
 
+  if (body.items !== undefined && !Array.isArray(body.items)) {
+    return bad("INVALID_ITEM");
+  }
   const itemPatches: { id: string; quantity: number }[] = [];
-  for (const item of body.items ?? []) {
-    if (!item.id || !Number.isInteger(item.quantity)) {
+  const seenIds = new Set<string>();
+  for (const raw of (body.items as unknown[] | undefined) ?? []) {
+    const item = raw as { id?: unknown; quantity?: unknown } | null;
+    if (
+      !item ||
+      typeof item.id !== "string" ||
+      !item.id ||
+      typeof item.quantity !== "number" ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < MIN_QUANTITY ||
+      item.quantity > MAX_QUANTITY ||
+      // A repeated id would make the second write act on stale state.
+      seenIds.has(item.id)
+    ) {
       return bad("INVALID_ITEM");
     }
-    itemPatches.push({ id: item.id, quantity: item.quantity as number });
+    seenIds.add(item.id);
+    itemPatches.push({ id: item.id, quantity: item.quantity });
   }
 
-  const removeIds = body.removeItems ?? [];
+  if (body.removeItems !== undefined && !Array.isArray(body.removeItems)) {
+    return bad("INVALID_ITEM");
+  }
+  const removeIds = (body.removeItems as unknown[] | undefined) ?? [];
   if (removeIds.some((removeId) => typeof removeId !== "string")) {
+    return bad("INVALID_ITEM");
+  }
+  // Editing and removing the same line in one request is contradictory.
+  if ((removeIds as string[]).some((removeId) => seenIds.has(removeId))) {
     return bad("INVALID_ITEM");
   }
 
@@ -116,24 +147,31 @@ export async function PATCH(
 
       if (removeIds.length) {
         await tx.orderItem.deleteMany({
-          where: { id: { in: removeIds }, orderId: id },
+          where: { id: { in: removeIds as string[] }, orderId: id },
         });
       }
 
+      // Read the order's own items once, so membership is checked against the
+      // order rather than trusting the ids the client sent, and so a quantity
+      // change can be told apart from a no-op resend.
+      const ownItems = await tx.orderItem.findMany({
+        where: { orderId: id },
+        select: { id: true, quantity: true },
+      });
+      const quantityById = new Map(ownItems.map((i) => [i.id, i.quantity]));
+
       for (const item of itemPatches) {
-        // Scope every write by orderId so a stale or malicious client cannot
-        // reach into a different order's items. updateMany/deleteMany accept
-        // a compound filter where update/delete would only take the id.
-        const { count } =
-          item.quantity <= 0
-            ? await tx.orderItem.deleteMany({
-                where: { id: item.id, orderId: id },
-              })
-            : await tx.orderItem.updateMany({
-                where: { id: item.id, orderId: id },
-                data: { quantity: item.quantity },
-              });
-        if (count === 0) throw new PatchError("ITEM_NOT_IN_ORDER", 400);
+        const currentQuantity = quantityById.get(item.id);
+        if (currentQuantity === undefined) {
+          throw new PatchError("ITEM_NOT_IN_ORDER", 400);
+        }
+        if (item.quantity === currentQuantity) continue;
+        await tx.orderItem.update({
+          where: { id: item.id },
+          // A picked item was counted off the shelf at the old quantity, so
+          // changing it invalidates that check — the picker has to redo it.
+          data: { quantity: item.quantity, picked: false },
+        });
       }
 
       return { id: order.id };

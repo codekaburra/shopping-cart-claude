@@ -36,23 +36,46 @@ Note for future work in this file: the transaction rolls back only when the
 callback **throws**. Returning an error value commits the writes made so far —
 this was caught in testing and is why the route throws a `PatchError`.
 
-### 1.6 Rate-limit the login endpoints
+### 1.6 Rate-limit the login endpoints — FIXED
 
-`/api/auth/invite` and `/api/admin/auth` accept unlimited attempts — invite
-codes and the admin password can both be brute-forced. Cheapest fix is nginx
-`limit_req` in `deploy/nginx.conf`.
+`/api/auth/invite` and `/api/admin/auth` accepted unlimited attempts, so both
+invite codes and the admin password could be brute-forced.
 
-### 1.7 Dashboard revenue reads the whole OrderItem table
+Fixed in `deploy/nginx.conf`: a `limit_req_zone` keyed on client address, with
+`limit_req zone=login burst=5 nodelay` on just those two endpoints, at 10
+requests per minute. Rejections return 429 rather than the default 503, which
+would read as an outage. Ordinary browsing is not rate limited.
 
-`src/app/admin/(dashboard)/page.tsx` pulls every order item into memory twice
-to sum revenue. Fine at current volume, linear growth from here. Also worth
-confirming: revenue currently counts `PENDING_PAYMENT` orders, i.e. money not
-yet received.
+Shared proxy headers moved to the `server` block so the three locations inherit
+them instead of repeating the list.
 
-### 1.8 `picked` is never reset
+### 1.7 Dashboard revenue reads the whole OrderItem table — FIXED
 
-Changing an item's quantity, or moving an order back a status, leaves items
-flagged as picked. Picking data silently goes stale.
+The dashboard loaded every order item into memory twice — once to sum revenue,
+once for the category breakdown — which grew with every order placed.
+
+Fixed: both are now `$queryRaw` aggregates (`SUM`, and a `GROUP BY` over the
+category join). Output was diffed against the previous JS implementation on
+2,509 rows and matches exactly, revenue and every category bucket.
+
+Still open, and a product question rather than a bug: revenue counts
+`PENDING_PAYMENT` orders, i.e. money not yet received.
+
+### 1.8 `picked` is never reset — FIXED
+
+Changing an item's quantity, or moving an order backwards, left items flagged
+as picked, so the picking list silently described a state that no longer held.
+
+Fixed, with deliberately conservative rules:
+
+- **Quantity changed** → that item's `picked` clears. It was counted off the
+  shelf at the old quantity. Resending an unchanged quantity does *not* clear
+  it, so a no-op save costs the picker nothing.
+- **Order moves back before `PENDING_SHIPMENT`** → all items clear. The order
+  is no longer being fulfilled. Moving *forward* (to pickup, to completed)
+  keeps the flags.
+
+Removing an item needs no rule — the row goes with it.
 
 ## 2. Payment layer (after the security fixes above)
 

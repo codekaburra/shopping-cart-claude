@@ -40,7 +40,12 @@ function LoginForm() {
         body: JSON.stringify({ code }),
       });
       if (!response.ok) {
-        setError(t("loginErrorInvalid"));
+        // 429 comes from the nginx rate limit, not from a bad code — saying
+        // "invalid" would send a customer with the right code into more
+        // retries, which keeps them throttled.
+        setError(
+          t(response.status === 429 ? "loginErrorRateLimited" : "loginErrorInvalid"),
+        );
         return;
       }
       router.replace(nextPath);
