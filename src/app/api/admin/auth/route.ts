@@ -7,9 +7,12 @@ import {
 } from "@/lib/admin-session";
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as { username?: string; password?: string };
-  const { username, password } = body;
+  const body = (await request.json().catch(() => null)) as {
+    username?: string;
+    password?: string;
+  } | null;
 
+  const { username, password } = body ?? {};
   if (!username || !password || !validateCredentials(username, password)) {
     return NextResponse.json({ error: "invalid" }, { status: 401 });
   }

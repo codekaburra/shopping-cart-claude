@@ -18,37 +18,23 @@ Fixed: the page now requires a session (redirecting to `/login?next=…`
 otherwise) and scopes the lookup with `findFirst({ where: { id, userId } })`,
 so another customer's order is simply not found.
 
-### 1.2 Admin order edit can modify other orders' items
+### 1.2–1.5 Admin order API hardening — FIXED
 
-In `src/app/api/admin/orders/[id]/route.ts`, the `items` loop updates and
-deletes by item ID alone:
+The admin order routes could edit another order's items (`orderItem.update`
+scoped by item id alone, while `removeItems` right above it correctly scoped
+by `orderId`), accepted an arbitrary `fulfillment` string, allowed `DELIVERY`
+with no address, never checked `quantity` was an integer, had no `try`/`catch`
+anywhere, and applied their writes without a transaction.
 
-```ts
-await prisma.orderItem.update({ where: { id: item.id } , ... })
-```
+Fixed: every item write is now scoped by `orderId`, the patch is validated
+against the *resulting* order state (so a delivery order still needs an address
+when only one of the two fields is sent), all four admin routes guard
+`request.json()` and map failures to typed error codes, and the edit runs in
+`prisma.$transaction`.
 
-`removeItems` a few lines above correctly scopes with `orderId: id`. Same
-route, two conventions — the unscoped one lets a stale or buggy client edit a
-different order's items. Admin-only, so this is data integrity rather than
-privilege escalation.
-
-### 1.3 No input validation on admin order edit
-
-Same route: `fulfillment` accepts any string (Prisma then throws on an invalid
-enum, surfacing as a 500), `DELIVERY` is accepted with no address, and
-`quantity` is never checked for being a positive integer. The public
-`/api/orders` validates all three — the admin path should not be weaker.
-
-### 1.4 No error handling in any API route
-
-None of the six routes has a `try`/`catch`. `/api/orders` and
-`/api/auth/invite` at least guard `request.json()` with `.catch(() => null)`;
-the four admin routes don't, so a malformed body is an unhandled throw.
-
-### 1.5 Order edit is not atomic
-
-The order update, `deleteMany`, and per-item updates are separate writes. A
-failure part-way leaves the order half-edited. Wrap in `prisma.$transaction`.
+Note for future work in this file: the transaction rolls back only when the
+callback **throws**. Returning an error value commits the writes made so far —
+this was caught in testing and is why the route throws a `PatchError`.
 
 ### 1.6 Rate-limit the login endpoints
 
